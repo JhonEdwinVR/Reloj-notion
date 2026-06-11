@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flip Clock</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── Clock Wrapper ── */
+  .clock {
+    display: flex;
+    align-items: center;
+    gap: clamp(12px, 3vw, 32px);
+    user-select: none;
+  }
+
+  /* ── AM/PM Badge ── */
+  .ampm {
+    position: absolute;
+    top: clamp(4px, 1.5vw, 10px);
+    left: clamp(6px, 2vw, 14px);
+    font-size: clamp(9px, 1.2vw, 13px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #555;
+    text-transform: uppercase;
+    font-family: 'Arial', sans-serif;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── Separator Dots ── */
+  .separator {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 2vw, 18px);
+    align-items: center;
+    margin-bottom: clamp(2px, 0.5vw, 6px);
+  }
+
+  .separator span {
+    display: block;
+    width: clamp(6px, 1.2vw, 10px);
+    height: clamp(6px, 1.2vw, 10px);
+    border-radius: 50%;
+    background: #222;
+    box-shadow: 0 0 4px rgba(255,255,255,0.04);
+  }
+
+  /* ── Card Unit (2 digits per unit) ── */
+  .unit {
+    display: flex;
+    gap: clamp(6px, 1.5vw, 14px);
+    position: relative;
+  }
+
+  /* ── Individual Flip Card ── */
+  .flip-card {
+    position: relative;
+    width: clamp(64px, 12vw, 130px);
+    height: clamp(88px, 16vw, 176px);
+    border-radius: clamp(6px, 1vw, 10px);
+    background: #111;
+    overflow: hidden;
+    /* Premium shadow */
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.9),
+      0 2px 8px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      inset 0 -1px 0 rgba(0,0,0,0.6);
+  }
+
+  /* ── Static halves (what you see at rest) ── */
+  .static-top,
+  .static-bottom {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;  /* top half: number anchored to bottom */
+    justify-content: center;
+    background: #111;
+    /* Subtle gradient for depth */
+  }
+
+  .static-top {
+    top: 0;
+    align-items: flex-end;
+    border-radius: clamp(6px, 1vw, 10px) clamp(6px, 1vw, 10px) 0 0;
+    /* Inner shadow at top */
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.5);
+    background: linear-gradient(to bottom, #141414 0%, #111 100%);
+  }
+
+  .static-bottom {
+    bottom: 0;
+    align-items: flex-start; /* bottom half: number anchored to top */
+    border-radius: 0 0 clamp(6px, 1vw, 10px) clamp(6px, 1vw, 10px);
+    background: linear-gradient(to bottom, #0e0e0e 0%, #121212 100%);
+    box-shadow: inset 0 -3px 8px rgba(0,0,0,0.5);
+  }
+
+  /* ── Number inside halves ── */
+  .static-top .num,
+  .static-bottom .num {
+    font-size: clamp(52px, 9.5vw, 110px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    /* Subtle text shadow for premium look */
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    /* Position so the digit is centered across both halves */
+    position: relative;
+  }
+
+  .static-top .num {
+    /* Shift down so number visually crosses the divider */
+    transform: translateY(50%);
+  }
+
+  .static-bottom .num {
+    transform: translateY(-50%);
+  }
+
+  /* ── Centre Divider ── */
+  .divider {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    transform: translateY(-50%);
+    z-index: 20;
+    pointer-events: none;
+    /* Dark gap with subtle metallic look */
+    background: linear-gradient(to right,
+      #000 0%,
+      #1a1a1a 20%,
+      #000 50%,
+      #1a1a1a 80%,
+      #000 100%
+    );
+    box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 -1px 0 rgba(255,255,255,0.03);
+  }
+
+  /* ── Flip Flap (the animated piece) ── */
+  .flap-container {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    /* 3D context */
+    perspective: 400px;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* Top flap: starts at top, folds DOWN */
+  .flap-container.top {
+    top: 0;
+    /* Show only top half of the digit */
+    transform-origin: bottom center;
+  }
+
+  /* Bottom flap: starts at bottom, folds UP into place */
+  .flap-container.bottom {
+    bottom: 0;
+    transform-origin: top center;
+  }
+
+  .flap {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    /* 3D flip axis */
+    transform-origin: inherit;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Top flap face (shows OLD number's top half) */
+  .flap-container.top .flap {
+    background: linear-gradient(to bottom, #141414 0%, #111 100%);
+    align-items: flex-end;
+    top: 0;
+    transform-origin: bottom center;
+    transform-style: preserve-3d;
+  }
+
+  /* Bottom flap face (shows NEW number's bottom half) */
+  .flap-container.bottom .flap {
+    background: linear-gradient(to bottom, #0e0e0e 0%, #121212 100%);
+    align-items: flex-start;
+    bottom: 0;
+    transform-origin: top center;
+    transform-style: preserve-3d;
+  }
+
+  .flap .num {
+    font-size: clamp(52px, 9.5vw, 110px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    position: relative;
+  }
+
+  .flap-container.top .flap .num {
+    transform: translateY(50%);
+  }
+
+  .flap-container.bottom .flap .num {
+    transform: translateY(-50%);
+  }
+
+  /* ── Shadow overlay on flap during animation ── */
+  .flap-shadow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0);
+    pointer-events: none;
+    z-index: 6;
+    transition: background 0.05s;
+  }
+
+  /* ── Keyframe Animations ── */
+
+  /* Top flap: rotates from 0 → -90deg (falls forward/down) */
+  @keyframes flapTopDown {
+    0%   { transform: rotateX(0deg); }
+    100% { transform: rotateX(-90deg); }
+  }
+
+  /* Bottom flap: starts at 90deg (behind), rotates to 0deg (falls into place) */
+  @keyframes flapBottomUp {
+    0%   { transform: rotateX(90deg); }
+    100% { transform: rotateX(0deg); }
+  }
+
+  /* Shadow on the falling top piece gets darker as it falls */
+  @keyframes shadowFadeIn {
+    0%   { background: rgba(0,0,0,0); }
+    100% { background: rgba(0,0,0,0.65); }
+  }
+
+  /* Shadow on the rising bottom piece brightens */
+  @keyframes shadowFadeOut {
+    0%   { background: rgba(0,0,0,0.65); }
+    100% { background: rgba(0,0,0,0); }
+  }
+
+  /* Active animation classes — added by JS */
+  .flap-container.top.animating .flap {
+    animation: flapTopDown 0.22s cubic-bezier(0.455, 0.03, 0.515, 0.955) forwards;
+  }
+
+  .flap-container.top.animating .flap-shadow {
+    animation: shadowFadeIn 0.22s ease-in forwards;
+  }
+
+  .flap-container.bottom.animating .flap {
+    animation: flapBottomUp 0.22s cubic-bezier(0.455, 0.03, 0.515, 0.955) forwards;
+  }
+
+  .flap-container.bottom.animating .flap-shadow {
+    animation: shadowFadeOut 0.22s ease-out forwards;
+  }
+
+  /* ── Responsive scaling for very small screens ── */
+  @media (max-width: 400px) {
+    .clock {
+      gap: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="clock" id="clock">
+  <!-- AM/PM badge sits above the hour unit -->
+  <div class="unit" id="unit-h">
+    <!-- Tens digit of hour -->
+    <div class="flip-card" id="card-h1">
+      <div class="static-top" id="st-h1-top"><span class="num">0</span></div>
+      <div class="static-bottom" id="st-h1-bot"><span class="num">0</span></div>
+      <div class="flap-container top" id="flap-h1-top">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="flap-container bottom" id="flap-h1-bot">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="ampm" id="ampm-badge">AM</div>
+    </div>
+    <!-- Units digit of hour -->
+    <div class="flip-card" id="card-h2">
+      <div class="static-top" id="st-h2-top"><span class="num">0</span></div>
+      <div class="static-bottom" id="st-h2-bot"><span class="num">0</span></div>
+      <div class="flap-container top" id="flap-h2-top">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="flap-container bottom" id="flap-h2-bot">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="divider"></div>
+    </div>
+  </div>
+
+  <!-- Colon separator -->
+  <div class="separator">
+    <span></span>
+    <span></span>
+  </div>
+
+  <!-- Minutes -->
+  <div class="unit" id="unit-m">
+    <div class="flip-card" id="card-m1">
+      <div class="static-top" id="st-m1-top"><span class="num">0</span></div>
+      <div class="static-bottom" id="st-m1-bot"><span class="num">0</span></div>
+      <div class="flap-container top" id="flap-m1-top">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="flap-container bottom" id="flap-m1-bot">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="divider"></div>
+    </div>
+    <div class="flip-card" id="card-m2">
+      <div class="static-top" id="st-m2-top"><span class="num">0</span></div>
+      <div class="static-bottom" id="st-m2-bot"><span class="num">0</span></div>
+      <div class="flap-container top" id="flap-m2-top">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="flap-container bottom" id="flap-m2-bot">
+        <div class="flap"><span class="num">0</span></div>
+        <div class="flap-shadow"></div>
+      </div>
+      <div class="divider"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ──────────────────────────────────────────────
+   *  FLIP CLOCK  –  Pure HTML/CSS/JS
+   *  No frameworks, no libraries, no external deps
+   * ────────────────────────────────────────────── */
+
+  // Duration of each half-flip in ms (must match CSS animation duration)
+  const FLIP_DURATION = 220;
+
+  // Delay between top-half fall and bottom-half rise (ms)
+  const FLIP_GAP = 10;
+
+  /**
+   * Digit helpers
+   * Each "digit slot" is controlled by 4 elements:
+   *   staticTop    – the always-visible upper half
+   *   staticBottom – the always-visible lower half
+   *   flapTop      – the flap that falls (shows old digit top)
+   *   flapBottom   – the flap that rises (shows new digit bottom)
+   */
+  function makeSlot(prefix) {
+    return {
+      staticTop:    document.querySelector(`#${prefix}-top .num`),
+      staticBottom: document.querySelector(`#${prefix}-bot .num`),
+      flapTopEl:    document.getElementById(`flap-${prefix.slice(3)}-top`),  // flap-container top
+      flapBotEl:    document.getElementById(`flap-${prefix.slice(3)}-bot`),  // flap-container bottom
+      flapTopNum:   document.querySelector(`#flap-${prefix.slice(3)}-top .num`),
+      flapBotNum:   document.querySelector(`#flap-${prefix.slice(3)}-bot .num`),
+      current: null,
+      animating: false,
+    };
+  }
+
+  // Build slot objects for each of the 4 digit positions
+  // IDs in HTML: st-h1-top / st-h1-bot, flap-h1-top / flap-h1-bot  etc.
+  const slots = {
+    h1: buildSlot('h1'),
+    h2: buildSlot('h2'),
+    m1: buildSlot('m1'),
+    m2: buildSlot('m2'),
+  };
+
+  function buildSlot(id) {
+    return {
+      staticTop:    document.querySelector(`#st-${id}-top .num`),
+      staticBottom: document.querySelector(`#st-${id}-bot .num`),
+      flapTopContainer: document.getElementById(`flap-${id}-top`),
+      flapBotContainer: document.getElementById(`flap-${id}-bot`),
+      flapTopNum:   document.querySelector(`#flap-${id}-top .num`),
+      flapBotNum:   document.querySelector(`#flap-${id}-bot .num`),
+      current: null,
+      animating: false,
+    };
+  }
+
+  const ampmBadge = document.getElementById('ampm-badge');
+
+  /**
+   * Set a digit immediately (no animation) – used on init.
+   */
+  function setDigitImmediate(slot, digit) {
+    const d = String(digit);
+    slot.staticTop.textContent    = d;
+    slot.staticBottom.textContent = d;
+    slot.flapTopNum.textContent   = d;
+    slot.flapBotNum.textContent   = d;
+    slot.current = d;
+  }
+
+  /**
+   * Animate a digit change from oldDigit → newDigit.
+   *
+   * Mechanics:
+   * 1. Static top/bottom already show oldDigit.
+   * 2. Update static BOTTOM to newDigit immediately (it's hidden behind flapBotContainer during animation).
+   * 3. Set flapTop to show oldDigit's top half → animate it falling (rotateX 0 → -90).
+   * 4. Set flapBot to show newDigit's bottom half, start behind (rotateX 90), animate rising (→ 0).
+   * 5. After animation: update static TOP to newDigit, remove animation classes.
+   */
+  function flipDigit(slot, newDigit) {
+    if (slot.animating || slot.current === String(newDigit)) return;
+    slot.animating = true;
+
+    const oldDigit = slot.current;
+    const nd = String(newDigit);
+
+    // Prepare flap faces BEFORE starting animation
+    slot.flapTopNum.textContent = oldDigit;   // top flap shows OLD top
+    slot.flapBotNum.textContent = nd;         // bot flap shows NEW bottom
+
+    // The static bottom already shows old — update it to new now
+    // (it's visually covered by the bottom flap container until animation ends)
+    slot.staticBottom.textContent = nd;
+
+    // Remove leftover animation classes to allow re-triggering
+    slot.flapTopContainer.classList.remove('animating');
+    slot.flapBotContainer.classList.remove('animating');
+
+    // Force reflow so removing+re-adding class restarts the animation
+    void slot.flapTopContainer.offsetWidth;
+    void slot.flapBotContainer.offsetWidth;
+
+    // ── Phase 1: top flap falls (0 → -90°) ──
+    slot.flapTopContainer.classList.add('animating');
+
+    // ── Phase 2: bottom flap rises (90° → 0°), starts after top finishes ──
+    setTimeout(() => {
+      slot.flapBotContainer.classList.add('animating');
+    }, FLIP_DURATION + FLIP_GAP);
+
+    // ── Phase 3: cleanup after both animations finish ──
+    const totalDuration = FLIP_DURATION * 2 + FLIP_GAP + 30; // small buffer
+    setTimeout(() => {
+      // Update static top to new digit
+      slot.staticTop.textContent = nd;
+      slot.current = nd;
+
+      // Remove animation classes
+      slot.flapTopContainer.classList.remove('animating');
+      slot.flapBotContainer.classList.remove('animating');
+
+      slot.animating = false;
+    }, totalDuration);
+  }
+
+  /**
+   * Read current time and update the clock.
+   * Called on init and every minute (synced to minute boundary).
+   */
+  function updateClock(animate) {
+    const now  = new Date();
+    let   h    = now.getHours();
+    const m    = now.getMinutes();
+    const isPM = h >= 12;
+
+    // Convert to 12-hour
+    h = h % 12;
+    if (h === 0) h = 12;
+
+    const h1 = Math.floor(h / 10);
+    const h2 = h % 10;
+    const m1 = Math.floor(m / 10);
+    const m2 = m % 10;
+
+    ampmBadge.textContent = isPM ? 'PM' : 'AM';
+
+    if (!animate) {
+      // Silent init – no flip animation
+      setDigitImmediate(slots.h1, h1);
+      setDigitImmediate(slots.h2, h2);
+      setDigitImmediate(slots.m1, m1);
+      setDigitImmediate(slots.m2, m2);
+    } else {
+      // Animated update
+      flipDigit(slots.h1, h1);
+      flipDigit(slots.h2, h2);
+      flipDigit(slots.m1, m1);
+      flipDigit(slots.m2, m2);
+    }
+  }
+
+  /**
+   * Schedule the next tick exactly at the next minute boundary.
+   * Using setTimeout chain instead of setInterval(60000) for precision.
+   */
+  function scheduleNextTick() {
+    const now   = Date.now();
+    const delay = 60000 - (now % 60000); // ms until next full minute
+
+    setTimeout(() => {
+      updateClock(true);       // animate the flip
+      scheduleNextTick();       // schedule the one after that
+    }, delay);
+  }
+
+  // ── Bootstrap ──
+  updateClock(false);   // set initial digits silently
+  scheduleNextTick();   // start the precision minute-sync loop
+</script>
+</body>
+</html>
