@@ -7,7 +7,7 @@
 <style>
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
 html, body {
   width: 100%; height: 100%;
   background: transparent;          /* Transparente — se integra a cualquier fondo */
@@ -17,7 +17,7 @@ html, body {
   font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
   overflow: hidden;
 }
-
+ 
 /* ── Outer wrapper: fondo oscuro compacto alrededor del reloj ── */
 .clock-shell {
   display: inline-flex;
@@ -33,7 +33,7 @@ html, body {
   gap: clamp(10px, 2.5vw, 24px);
   user-select: none;
 }
-
+ 
 /* ── Separador de puntos ── */
 .sep {
   display: flex; flex-direction: column;
@@ -48,10 +48,10 @@ html, body {
   border-radius: 50%;
   background: #383838;
 }
-
+ 
 /* ── Par de dígitos (horas / minutos) ── */
 .pair { display: flex; gap: clamp(5px, 1.2vw, 10px); }
-
+ 
 /* ── Tarjeta individual ── */
 .card {
   position: relative;
@@ -65,7 +65,7 @@ html, body {
     inset 0 1px 0 rgba(255,255,255,0.04),
     inset 0 -1px 0 rgba(0,0,0,0.5);
 }
-
+ 
 /* ── Mitades estáticas (siempre visibles, z-index bajo) ── */
 .half {
   position: absolute; left: 0; width: 100%; height: 50%;
@@ -76,7 +76,7 @@ html, body {
 }
 .half.up   { top: 0;    align-items: flex-end;   background: linear-gradient(180deg,#161616,#111); }
 .half.down { bottom: 0; align-items: flex-start; background: linear-gradient(180deg,#0d0d0d,#131313); }
-
+ 
 /* ── Flaps animados (z-index más alto) ── */
 .flap {
   position: absolute; left: 0; width: 100%; height: 50%;
@@ -88,7 +88,7 @@ html, body {
 }
 .flap.up   { top: 0;    align-items: flex-end;   background: linear-gradient(180deg,#161616,#111); transform-origin: bottom center; }
 .flap.down { bottom: 0; align-items: flex-start; background: linear-gradient(180deg,#0d0d0d,#131313); transform-origin: top center; }
-
+ 
 /* ── Overlay de sombra encima del flap ── */
 .flap-shade {
   position: absolute; inset: 0;
@@ -96,7 +96,7 @@ html, body {
   z-index: 3;
   pointer-events: none;
 }
-
+ 
 /* ── Números ── */
 .digit {
   font-size: clamp(50px, 8.8vw, 96px);
@@ -112,7 +112,7 @@ html, body {
 .flap.up   .digit { transform: translateY(50%); }
 .half.down .digit,
 .flap.down .digit { transform: translateY(-50%); }
-
+ 
 /* ── Línea divisoria central ── */
 .divider {
   position: absolute; top: 50%; left: 0;
@@ -123,7 +123,7 @@ html, body {
   z-index: 10;
   pointer-events: none;
 }
-
+ 
 /* ── Badge AM/PM ── */
 .ampm {
   position: absolute;
@@ -137,12 +137,12 @@ html, body {
 </style>
 </head>
 <body>
-
+ 
 <div class="clock-shell" id="shell">
-
+ 
   <!-- HORAS -->
   <div class="pair" id="pair-h">
-
+ 
     <!-- Dígito h1 (decena de hora) -->
     <div class="card" id="card-h1">
       <div class="ampm" id="ampm">AM</div>
@@ -154,7 +154,7 @@ html, body {
       <div class="flap down" id="fd-h1"><span class="digit">0</span><div class="flap-shade" id="fs-fd-h1"></div></div>
       <div class="divider"></div>
     </div>
-
+ 
     <!-- Dígito h2 (unidad de hora) -->
     <div class="card" id="card-h2">
       <div class="half up"   id="su-h2"><span class="digit">0</span></div>
@@ -164,13 +164,13 @@ html, body {
       <div class="divider"></div>
     </div>
   </div>
-
+ 
   <!-- SEPARADOR -->
   <div class="sep"><span></span><span></span></div>
-
+ 
   <!-- MINUTOS -->
   <div class="pair" id="pair-m">
-
+ 
     <!-- Dígito m1 (decena de minuto) -->
     <div class="card" id="card-m1">
       <div class="half up"   id="su-m1"><span class="digit">0</span></div>
@@ -179,7 +179,7 @@ html, body {
       <div class="flap down" id="fd-m1"><span class="digit">0</span><div class="flap-shade" id="fs-fd-m1"></div></div>
       <div class="divider"></div>
     </div>
-
+ 
     <!-- Dígito m2 (unidad de minuto) -->
     <div class="card" id="card-m2">
       <div class="half up"   id="su-m2"><span class="digit">0</span></div>
@@ -189,19 +189,19 @@ html, body {
       <div class="divider"></div>
     </div>
   </div>
-
+ 
 </div><!-- /clock-shell -->
-
+ 
 <script>
 /* ═══════════════════════════════════════════════════════
  *  FLIP CLOCK v2
  *  Animación vía Web Animations API — sin CSS class tricks.
  *  Sin frameworks. Sin librerías. Sin CDN.
  * ═══════════════════════════════════════════════════════ */
-
+ 
 const FLIP_MS  = 200;   // duración de cada mitad de flip (ms)
 const GAP_MS   = 8;     // pausa entre caída y subida (ms)
-
+ 
 /* ── Construye un objeto "slot" para cada posición de dígito ── */
 function makeSlot(id) {
   return {
@@ -222,16 +222,16 @@ function makeSlot(id) {
     busy: false,
   };
 }
-
+ 
 const S = {
   h1: makeSlot('h1'),
   h2: makeSlot('h2'),
   m1: makeSlot('m1'),
   m2: makeSlot('m2'),
 };
-
+ 
 const ampmEl = document.getElementById('ampm');
-
+ 
 /* ── Asigna un dígito sin animación (init) ── */
 function setImmediate(slot, val) {
   const v = String(val);
@@ -247,7 +247,7 @@ function setImmediate(slot, val) {
   slot.current = v;
   slot.busy    = false;
 }
-
+ 
 /* ── Animación principal de flip ──
  *
  *  Estructura visual en capas durante el flip:
@@ -267,21 +267,21 @@ function setImmediate(slot, val) {
 function flip(slot, newVal) {
   if (slot.busy || slot.current === String(newVal)) return;
   slot.busy = true;
-
+ 
   const oldVal = slot.current;
   const nv     = String(newVal);
-
+ 
   /* 1. Prepara contenidos ANTES de arrancar */
   slot.flapUpNum.textContent   = oldVal;   // el flap que cae muestra el VIEJO (arriba)
   slot.flapDownNum.textContent = nv;       // el flap que sube muestra el NUEVO (abajo)
   slot.staticDown.textContent  = nv;       // estática inferior ya tiene el nuevo (cubierta)
-
+ 
   /* Asegura que los flaps estén en posición inicial sin transición CSS residual */
   slot.flapUp.style.transform   = 'rotateX(0deg)';
   slot.flapDown.style.transform = 'rotateX(90deg)';   // empieza oculto detrás
   slot.shadeUp.style.background   = 'transparent';
   slot.shadeDown.style.background = 'rgba(0,0,0,0.55)';
-
+ 
   /* 2. Anima el flap superior cayendo: 0° → -90° */
   const animUp = slot.flapUp.animate(
     [
@@ -290,7 +290,7 @@ function flip(slot, newVal) {
     ],
     { duration: FLIP_MS, fill: 'forwards' }
   );
-
+ 
   /* Sombra que se intensifica mientras cae */
   slot.shadeUp.animate(
     [
@@ -299,16 +299,16 @@ function flip(slot, newVal) {
     ],
     { duration: FLIP_MS, fill: 'forwards' }
   );
-
+ 
   /* 3. Cuando termina la caída, arranca la subida */
   animUp.onfinish = () => {
     /* Oculta flapUp — la estática ya mostrará el nuevo valor */
     slot.staticUp.textContent = nv;
     slot.flapUp.style.transform = 'rotateX(-90deg)';   /* queda oculto */
-
+ 
     /* GAP pequeño para sensación mecánica */
     setTimeout(() => {
-
+ 
       /* 4. Anima el flap inferior subiendo: 90° → 0° */
       const animDown = slot.flapDown.animate(
         [
@@ -317,7 +317,7 @@ function flip(slot, newVal) {
         ],
         { duration: FLIP_MS, fill: 'forwards' }
       );
-
+ 
       /* Sombra que se disipa mientras sube */
       slot.shadeDown.animate(
         [
@@ -326,7 +326,7 @@ function flip(slot, newVal) {
         ],
         { duration: FLIP_MS, fill: 'forwards' }
       );
-
+ 
       /* 5. Cleanup tras completar la subida */
       animDown.onfinish = () => {
         /* Resetea flaps a posición de reposo (sin transición visible) */
@@ -336,47 +336,47 @@ function flip(slot, newVal) {
         slot.flapDown.style.transform = 'rotateX(0deg)';
         slot.shadeUp.style.background   = 'transparent';
         slot.shadeDown.style.background = 'transparent';
-
+ 
         /* Cancela las animaciones para liberar memoria */
         slot.flapUp.getAnimations().forEach(a => a.cancel());
         slot.flapDown.getAnimations().forEach(a => a.cancel());
         slot.shadeUp.getAnimations().forEach(a => a.cancel());
         slot.shadeDown.getAnimations().forEach(a => a.cancel());
-
+ 
         slot.current = nv;
         slot.busy    = false;
       };
-
+ 
     }, GAP_MS);
   };
 }
-
+ 
 /* ── Lee la hora actual y actualiza los 4 slots ── */
 function tick(animate) {
   const now  = new Date();
   let   h    = now.getHours();
   const m    = now.getMinutes();
   const isPM = h >= 12;
-
+ 
   h = h % 12 || 12;          // 12h format, 0→12
-
+ 
   ampmEl.textContent = isPM ? 'PM' : 'AM';
-
+ 
   const digits = [
     Math.floor(h / 10),
     h % 10,
     Math.floor(m / 10),
     m % 10,
   ];
-
+ 
   const keys = ['h1','h2','m1','m2'];
-
+ 
   keys.forEach((k, i) => {
     if (animate) flip(S[k], digits[i]);
     else         setImmediate(S[k], digits[i]);
   });
 }
-
+ 
 /* ── Sincronización exacta al minuto ── */
 function scheduleTick() {
   const msUntilNextMinute = 60000 - (Date.now() % 60000);
@@ -385,7 +385,7 @@ function scheduleTick() {
     scheduleTick();
   }, msUntilNextMinute);
 }
-
+ 
 /* ── Arranque ── */
 tick(false);        // carga silenciosa inicial
 scheduleTick();     // loop sincronizado al reloj del sistema
