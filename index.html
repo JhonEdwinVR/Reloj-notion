@@ -11,35 +11,46 @@
 html {
   width: 100%; height: 100%;
   background: transparent !important;
-  color-scheme: dark light; /* Evita que el navegador fuerce un fondo blanco */
+  color-scheme: dark light;
 }
 
 body {
   width: 100%; height: 100%;
+  min-height: 100vh;
   background: transparent !important;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
   overflow: hidden;
-  padding: 20px; /* Da espacio para que la sombra no se corte contra los bordes del iframe */
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* ── Outer wrapper: fondo oscuro compacto alrededor del reloj ── */
+/* ── Outer wrapper ── */
 .clock-shell {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: #1a1a1a;
   border-radius: 14px;
-  /* Cambiamos 'vw' por 'vmin' para que escale según el lado más pequeño del contenedor */
   padding: clamp(16px, 3vmin, 28px) clamp(20px, 4vmin, 36px);
   box-shadow:
-    0 15px 40px rgba(0,0,0,0.7), /* Sombra contenida para evitar manchas grises en el iframe */
+    0 15px 40px rgba(0,0,0,0.7),
     0 4px 16px rgba(0,0,0,0.5),
     inset 0 1px 0 rgba(255,255,255,0.05);
-  gap: clamp(10px, 2.5vmin, 24px);
+  gap: clamp(10px, 2.5vmin, 20px);
   user-select: none;
+  position: relative;
+}
+
+/* ── Digits row ── */
+.digits-row {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(10px, 2.5vmin, 24px);
 }
 
 /* ── Separador de puntos ── */
@@ -55,9 +66,12 @@ body {
   height: clamp(5px, 0.9vmin, 8px);
   border-radius: 50%;
   background: #383838;
+  transition: background 0.3s;
 }
+.sep.blinking span { animation: blink 1s step-start infinite; }
+@keyframes blink { 0%,100%{background:#555} 50%{background:#222} }
 
-/* ── Par de dígitos (horas / minutos) ── */
+/* ── Par de dígitos ── */
 .pair { display: flex; gap: clamp(5px, 1.2vmin, 10px); }
 
 /* ── Tarjeta individual ── */
@@ -67,14 +81,14 @@ body {
   height: clamp(70px, 14vmin,  148px);
   background: #111;
   border-radius: clamp(5px, 0.8vmin, 8px);
-  overflow: hidden;             /* CRÍTICO: confina los flaps */
+  overflow: hidden;
   box-shadow:
     0 6px 24px rgba(0,0,0,0.9),
     inset 0 1px 0 rgba(255,255,255,0.04),
     inset 0 -1px 0 rgba(0,0,0,0.5);
 }
 
-/* ── Mitades estáticas (siempre visibles, z-index bajo) ── */
+/* ── Mitades estáticas ── */
 .half {
   position: absolute; left: 0; width: 100%; height: 50%;
   overflow: hidden;
@@ -85,7 +99,7 @@ body {
 .half.up   { top: 0;    align-items: flex-end;   background: linear-gradient(180deg,#161616,#111); }
 .half.down { bottom: 0; align-items: flex-start; background: linear-gradient(180deg,#0d0d0d,#131313); }
 
-/* ── Flaps animados (z-index más alto) ── */
+/* ── Flaps animados ── */
 .flap {
   position: absolute; left: 0; width: 100%; height: 50%;
   overflow: hidden;
@@ -96,7 +110,6 @@ body {
 .flap.up   { top: 0;    align-items: flex-end;   background: linear-gradient(180deg,#161616,#111); transform-origin: bottom center; }
 .flap.down { bottom: 0; align-items: flex-start; background: linear-gradient(180deg,#0d0d0d,#131313); transform-origin: top center; }
 
-/* ── Overlay de sombra encima del flap ── */
 .flap-shade {
   position: absolute; inset: 0;
   background: transparent;
@@ -140,87 +153,337 @@ body {
   font-family: Arial, sans-serif;
   z-index: 11; pointer-events: none;
 }
+
+/* ── Mode Label ── */
+.mode-label {
+  font-size: clamp(8px, 1.1vmin, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #444;
+  text-transform: uppercase;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  height: 14px;
+  transition: opacity 0.3s;
+}
+
+/* ── Controls bar ── */
+.controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.8vmin, 18px);
+  margin-top: clamp(4px, 1vmin, 8px);
+}
+
+.ctrl-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: clamp(5px, 1vmin, 8px);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+  transition: opacity 0.2s, background 0.2s;
+  color: #fff;
+}
+.ctrl-btn:hover { opacity: 0.75; background: rgba(255,255,255,0.06); }
+.ctrl-btn.active { opacity: 1; }
+.ctrl-btn svg { display: block; }
+
+/* ── Timer/Stopwatch action buttons ── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.8vmin, 16px);
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: height 0.35s ease, opacity 0.3s ease, margin-top 0.35s ease;
+  margin-top: 0;
+}
+.action-bar.visible {
+  height: clamp(28px, 5vmin, 40px);
+  opacity: 1;
+  margin-top: clamp(2px, 0.8vmin, 6px);
+}
+
+.act-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #aaa;
+  font-size: clamp(9px, 1.1vmin, 12px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: Arial, sans-serif;
+  padding: clamp(4px,0.8vmin,7px) clamp(10px,2vmin,18px);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.act-btn:hover { background: rgba(255,255,255,0.13); color: #fff; border-color: rgba(255,255,255,0.2); }
+.act-btn.primary { color: #fff; background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.22); }
+.act-btn.primary:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Timer input overlay ── */
+.timer-setup {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 2vmin, 18px);
+  position: absolute;
+  inset: 0;
+  background: #1a1a1a;
+  border-radius: 14px;
+  justify-content: center;
+  z-index: 20;
+  padding: clamp(14px, 3vmin, 24px);
+}
+.timer-setup.visible { display: flex; }
+.timer-setup-title {
+  font-size: clamp(9px, 1.1vmin, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #444;
+  text-transform: uppercase;
+  font-family: Arial, sans-serif;
+}
+.timer-inputs {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.2vmin, 12px);
+}
+.timer-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.timer-input-group label {
+  font-size: clamp(8px, 0.9vmin, 10px);
+  color: #444;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: Arial, sans-serif;
+}
+.timer-input-group input {
+  width: clamp(52px, 10vmin, 80px);
+  height: clamp(40px, 8vmin, 60px);
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  font-size: clamp(22px, 4.5vmin, 38px);
+  font-weight: 900;
+  font-family: 'Arial Black', Arial, sans-serif;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.timer-input-group input:focus { border-color: #555; }
+.timer-sep-dot {
+  font-size: clamp(20px, 4vmin, 34px);
+  font-weight: 900;
+  color: #333;
+  margin-bottom: 18px;
+  font-family: 'Arial Black', Arial, sans-serif;
+}
+.timer-setup-btns {
+  display: flex;
+  gap: clamp(8px, 1.5vmin, 14px);
+}
+
+/* ── Finished flash ── */
+@keyframes flashCard {
+  0%,100% { box-shadow: 0 6px 24px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.04); }
+  50% { box-shadow: 0 6px 24px rgba(255,255,255,0.12), inset 0 1px 0 rgba(255,255,255,0.15); }
+}
+.card.flash { animation: flashCard 0.5s ease 3; }
+
+/* ── Fullscreen styles ── */
+:fullscreen body,
+:-webkit-full-screen body,
+:-moz-full-screen body {
+  background: #000 !important;
+}
+:fullscreen .clock-shell,
+:-webkit-full-screen .clock-shell,
+:-moz-full-screen .clock-shell {
+  background: #111;
+  transform: scale(1.8);
+}
 </style>
 </head>
 <body>
 
 <div class="clock-shell" id="shell">
-  <div class="pair" id="pair-h">
-    <div class="card" id="card-h1">
-      <div class="ampm" id="ampm">AM</div>
-      <div class="half up"   id="su-h1"><span class="digit">0</span></div>
-      <div class="half down" id="sd-h1"><span class="digit">0</span></div>
-      <div class="flap up"   id="fu-h1"><span class="digit">0</span><div class="flap-shade" id="fs-fu-h1"></div></div>
-      <div class="flap down" id="fd-h1"><span class="digit">0</span><div class="flap-shade" id="fs-fd-h1"></div></div>
-      <div class="divider"></div>
+
+  <!-- Timer setup overlay -->
+  <div class="timer-setup" id="timerSetup">
+    <div class="timer-setup-title">Configurar Temporizador</div>
+    <div class="timer-inputs">
+      <div class="timer-input-group">
+        <input type="number" id="inputH" min="0" max="23" value="0" placeholder="00">
+        <label>horas</label>
+      </div>
+      <div class="timer-sep-dot">:</div>
+      <div class="timer-input-group">
+        <input type="number" id="inputM" min="0" max="59" value="5" placeholder="00">
+        <label>min</label>
+      </div>
+      <div class="timer-sep-dot">:</div>
+      <div class="timer-input-group">
+        <input type="number" id="inputS" min="0" max="59" value="0" placeholder="00">
+        <label>seg</label>
+      </div>
     </div>
-    <div class="card" id="card-h2">
-      <div class="half up"   id="su-h2"><span class="digit">0</span></div>
-      <div class="half down" id="sd-h2"><span class="digit">0</span></div>
-      <div class="flap up"   id="fu-h2"><span class="digit">0</span><div class="flap-shade" id="fs-fu-h2"></div></div>
-      <div class="flap down" id="fd-h2"><span class="digit">0</span><div class="flap-shade" id="fs-fd-h2"></div></div>
-      <div class="divider"></div>
+    <div class="timer-setup-btns">
+      <button class="act-btn" id="setupCancelBtn">Cancelar</button>
+      <button class="act-btn primary" id="setupStartBtn">Iniciar</button>
     </div>
   </div>
 
-  <div class="sep"><span></span><span></span></div>
+  <!-- Mode label -->
+  <div class="mode-label" id="modeLabel">RELOJ</div>
 
-  <div class="pair" id="pair-m">
-    <div class="card" id="card-m1">
-      <div class="half up"   id="su-m1"><span class="digit">0</span></div>
-      <div class="half down" id="sd-m1"><span class="digit">0</span></div>
-      <div class="flap up"   id="fu-m1"><span class="digit">0</span><div class="flap-shade" id="fs-fu-m1"></div></div>
-      <div class="flap down" id="fd-m1"><span class="digit">0</span><div class="flap-shade" id="fs-fd-m1"></div></div>
-      <div class="divider"></div>
+  <!-- Digits -->
+  <div class="digits-row">
+    <div class="pair" id="pair-0">
+      <div class="card" id="card-s0">
+        <div class="ampm" id="ampm">AM</div>
+        <div class="half up"   id="su-s0"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s0"><span class="digit">0</span></div>
+        <div class="flap up"   id="fu-s0"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s0"></div></div>
+        <div class="flap down" id="fd-s0"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s0"></div></div>
+        <div class="divider"></div>
+      </div>
+      <div class="card" id="card-s1">
+        <div class="half up"   id="su-s1"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s1"><span class="digit">0</span></div>
+        <div class="flap up"   id="fu-s1"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s1"></div></div>
+        <div class="flap down" id="fd-s1"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s1"></div></div>
+        <div class="divider"></div>
+      </div>
     </div>
-    <div class="card" id="card-m2">
-      <div class="half up"   id="su-m2"><span class="digit">0</span></div>
-      <div class="half down" id="sd-m2"><span class="digit">0</span></div>
-      <div class="flap up"   id="fu-m2"><span class="digit">0</span><div class="flap-shade" id="fs-fu-m2"></div></div>
-      <div class="flap down" id="fd-m2"><span class="digit">0</span><div class="flap-shade" id="fs-fd-m2"></div></div>
-      <div class="divider"></div>
+
+    <div class="sep" id="sep1"><span></span><span></span></div>
+
+    <div class="pair" id="pair-1">
+      <div class="card" id="card-s2">
+        <div class="half up"   id="su-s2"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s2"><span class="digit">0</span></div>
+        <div class="flap up"   id="fu-s2"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s2"></div></div>
+        <div class="flap down" id="fd-s2"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s2"></div></div>
+        <div class="divider"></div>
+      </div>
+      <div class="card" id="card-s3">
+        <div class="half up"   id="su-s3"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s3"><span class="digit">0</span></div>
+        <div class="flap up"   id="fu-s3"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s3"></div></div>
+        <div class="flap down" id="fd-s3"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s3"></div></div>
+        <div class="divider"></div>
+      </div>
+    </div>
+
+    <div class="sep" id="sep2"><span></span><span></span></div>
+
+    <div class="pair" id="pair-2">
+      <div class="card" id="card-s4">
+        <div class="half up"   id="su-s4"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s4"><span class="digit">0</span></div>
+        <div class="flap up"   id="fu-s4"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s4"></div></div>
+        <div class="flap down" id="fd-s4"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s4"></div></div>
+        <div class="divider"></div>
+      </div>
+      <div class="card" id="card-s5">
+        <div class="half up"   id="su-s5"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s5"><span class="digit">0</span></div>
+        <div class="flap up"   id="fu-s5"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s5"></div></div>
+        <div class="flap down" id="fd-s5"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s5"></div></div>
+        <div class="divider"></div>
+      </div>
     </div>
   </div>
+
+  <!-- Action bar (timer/stopwatch controls) -->
+  <div class="action-bar" id="actionBar">
+    <button class="act-btn primary" id="actionMainBtn">Iniciar</button>
+    <button class="act-btn" id="actionResetBtn">Reiniciar</button>
+  </div>
+
+  <!-- Controls bar (mode switcher + fullscreen) -->
+  <div class="controls-bar">
+    <!-- Clock -->
+    <button class="ctrl-btn active" id="btnClock" title="Reloj">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </button>
+    <!-- Timer -->
+    <button class="ctrl-btn" id="btnTimer" title="Temporizador">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 2h4M12 2v2M19.07 4.93l-1.41 1.41M12 4a8 8 0 1 1 0 16A8 8 0 0 1 12 4z"/>
+        <polyline points="12 8 12 13 15 15"/>
+      </svg>
+    </button>
+    <!-- Stopwatch -->
+    <button class="ctrl-btn" id="btnStopwatch" title="Cronómetro">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="13" r="8"/>
+        <path d="M12 5V2M10 2h4"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="15" y1="10" x2="12" y2="13"/>
+      </svg>
+    </button>
+    <!-- Fullscreen -->
+    <button class="ctrl-btn" id="btnFullscreen" title="Pantalla completa">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="fsIcon">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
+      </svg>
+    </button>
+  </div>
+
 </div>
 
 <script>
-const FLIP_MS  = 200;
-const GAP_MS   = 8;
+const FLIP_MS = 200;
+const GAP_MS  = 8;
 
+// ── Slot factory ──────────────────────────────────────────
 function makeSlot(id) {
   return {
     id,
-    staticUp:   document.querySelector(`#su-${id} .digit`),
-    staticDown: document.querySelector(`#sd-${id} .digit`),
-    flapUp:     document.getElementById(`fu-${id}`),
-    flapDown:   document.getElementById(`fd-${id}`),
-    flapUpNum:  document.querySelector(`#fu-${id} .digit`),
-    flapDownNum:document.querySelector(`#fd-${id} .digit`),
-    shadeUp:    document.getElementById(`fs-fu-${id}`),
-    shadeDown:  document.getElementById(`fs-fd-${id}`),
+    staticUp:    document.querySelector(`#su-${id} .digit`),
+    staticDown:  document.querySelector(`#sd-${id} .digit`),
+    flapUp:      document.getElementById(`fu-${id}`),
+    flapDown:    document.getElementById(`fd-${id}`),
+    flapUpNum:   document.querySelector(`#fu-${id} .digit`),
+    flapDownNum: document.querySelector(`#fd-${id} .digit`),
+    shadeUp:     document.getElementById(`fs-fu-${id}`),
+    shadeDown:   document.getElementById(`fs-fd-${id}`),
     current: null,
     busy: false,
   };
 }
 
-const S = {
-  h1: makeSlot('h1'),
-  h2: makeSlot('h2'),
-  m1: makeSlot('m1'),
-  m2: makeSlot('m2'),
-};
+const S = ['s0','s1','s2','s3','s4','s5'].map(makeSlot);
 
-const ampmEl = document.getElementById('ampm');
-
+// ── Display helpers ────────────────────────────────────────
 function setImmediate(slot, val) {
   const v = String(val);
-  slot.staticUp.textContent   = v;
-  slot.staticDown.textContent = v;
-  slot.flapUpNum.textContent  = v;
-  slot.flapDownNum.textContent= v;
-  slot.flapUp.style.transform   = 'rotateX(0deg)';
-  slot.flapDown.style.transform = 'rotateX(0deg)';
-  slot.shadeUp.style.background   = 'transparent';
+  slot.staticUp.textContent    = v;
+  slot.staticDown.textContent  = v;
+  slot.flapUpNum.textContent   = v;
+  slot.flapDownNum.textContent = v;
+  slot.flapUp.style.transform    = 'rotateX(0deg)';
+  slot.flapDown.style.transform  = 'rotateX(0deg)';
+  slot.shadeUp.style.background  = 'transparent';
   slot.shadeDown.style.background = 'transparent';
   slot.current = v;
   slot.busy    = false;
@@ -237,9 +500,9 @@ function flip(slot, newVal) {
   slot.flapDownNum.textContent = nv;
   slot.staticDown.textContent  = nv;
 
-  slot.flapUp.style.transform   = 'rotateX(0deg)';
-  slot.flapDown.style.transform = 'rotateX(90deg)';
-  slot.shadeUp.style.background   = 'transparent';
+  slot.flapUp.style.transform    = 'rotateX(0deg)';
+  slot.flapDown.style.transform  = 'rotateX(90deg)';
+  slot.shadeUp.style.background  = 'transparent';
   slot.shadeDown.style.background = 'rgba(0,0,0,0.55)';
 
   const animUp = slot.flapUp.animate(
@@ -280,11 +543,11 @@ function flip(slot, newVal) {
       );
 
       animDown.onfinish = () => {
-        slot.flapUpNum.textContent    = nv;
-        slot.flapDownNum.textContent  = nv;
-        slot.flapUp.style.transform   = 'rotateX(0deg)';
-        slot.flapDown.style.transform = 'rotateX(0deg)';
-        slot.shadeUp.style.background   = 'transparent';
+        slot.flapUpNum.textContent   = nv;
+        slot.flapDownNum.textContent = nv;
+        slot.flapUp.style.transform    = 'rotateX(0deg)';
+        slot.flapDown.style.transform  = 'rotateX(0deg)';
+        slot.shadeUp.style.background  = 'transparent';
         slot.shadeDown.style.background = 'transparent';
 
         slot.flapUp.getAnimations().forEach(a => a.cancel());
@@ -299,41 +562,361 @@ function flip(slot, newVal) {
   };
 }
 
-function tick(animate) {
-  const now  = new Date();
-  let   h    = now.getHours();
-  const m    = now.getMinutes();
-  const isPM = h >= 12;
-
-  h = h % 12 || 12;
-
-  ampmEl.textContent = isPM ? 'PM' : 'AM';
-
-  const digits = [
-    Math.floor(h / 10),
-    h % 10,
-    Math.floor(m / 10),
-    m % 10,
-  ];
-
-  const keys = ['h1','h2','m1','m2'];
-
-  keys.forEach((k, i) => {
-    if (animate) flip(S[k], digits[i]);
-    else         setImmediate(S[k], digits[i]);
+function renderDigits(digits, animate) {
+  digits.forEach((d, i) => {
+    if (animate) flip(S[i], d);
+    else         setImmediate(S[i], d);
   });
 }
 
-function scheduleTick() {
-  const msUntilNextMinute = 60000 - (Date.now() % 60000);
-  setTimeout(() => {
-    tick(true);
-    scheduleTick();
-  }, msUntilNextMinute);
+// ── UI elements ────────────────────────────────────────────
+const ampmEl      = document.getElementById('ampm');
+const modeLabel   = document.getElementById('modeLabel');
+const actionBar   = document.getElementById('actionBar');
+const actionMainBtn  = document.getElementById('actionMainBtn');
+const actionResetBtn = document.getElementById('actionResetBtn');
+const sep1 = document.getElementById('sep1');
+const sep2 = document.getElementById('sep2');
+const timerSetup      = document.getElementById('timerSetup');
+const setupStartBtn   = document.getElementById('setupStartBtn');
+const setupCancelBtn  = document.getElementById('setupCancelBtn');
+const inputH = document.getElementById('inputH');
+const inputM = document.getElementById('inputM');
+const inputS = document.getElementById('inputS');
+const pair2  = document.getElementById('pair-2');
+
+// ── Mode state ────────────────────────────────────────────
+// 'clock' | 'timer' | 'stopwatch'
+let mode = 'clock';
+
+// ── Clock ─────────────────────────────────────────────────
+let clockTimeout = null;
+
+function clockDigits() {
+  const now = new Date();
+  let h = now.getHours();
+  const m = now.getMinutes();
+  const isPM = h >= 12;
+  h = h % 12 || 12;
+  ampmEl.textContent = isPM ? 'PM' : 'AM';
+  return [
+    Math.floor(h / 10), h % 10,
+    Math.floor(m / 10), m % 10,
+    0, 0 // placeholders – seconds pair hidden in clock mode
+  ];
 }
 
-tick(false);
-scheduleTick();
+function scheduleClock() {
+  const msUntilNext = 60000 - (Date.now() % 60000);
+  clockTimeout = setTimeout(() => {
+    if (mode !== 'clock') return;
+    renderDigits(clockDigits(), true);
+    scheduleClock();
+  }, msUntilNext);
+}
+
+function startClock(animate) {
+  const d = clockDigits();
+  // In clock mode, only show 4 digits (HH:MM)
+  pair2.style.display = 'none';
+  sep2.style.display  = 'none';
+  ampmEl.style.display = '';
+  renderDigits([d[0], d[1], d[2], d[3], 0, 0], animate);
+  scheduleClock();
+}
+
+// ── Stopwatch ──────────────────────────────────────────────
+let swElapsed  = 0;    // ms
+let swStart    = null; // timestamp
+let swInterval = null;
+let swRunning  = false;
+
+function swDigits() {
+  const total = Math.floor(swElapsed / 1000);
+  const hh = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = total % 60;
+  return [
+    Math.floor(hh / 10), hh % 10,
+    Math.floor(mm / 10), mm % 10,
+    Math.floor(ss / 10), ss % 10,
+  ];
+}
+
+function swTick() {
+  if (swStart !== null) swElapsed = Date.now() - swStart;
+  const d = swDigits();
+  renderDigits(d, true);
+}
+
+function startStopwatch(resume) {
+  if (!resume) { swElapsed = 0; swStart = null; swRunning = false; }
+  pair2.style.display = '';
+  sep2.style.display  = '';
+  ampmEl.style.display = 'none';
+  sep1.classList.remove('blinking');
+  renderDigits(swDigits(), false);
+  actionMainBtn.textContent = 'Iniciar';
+  actionResetBtn.textContent = 'Reiniciar';
+  actionBar.classList.add('visible');
+}
+
+function swRun() {
+  swStart = Date.now() - swElapsed;
+  swRunning = true;
+  clearInterval(swInterval);
+  swInterval = setInterval(swTick, 250);
+  sep1.classList.add('blinking');
+  actionMainBtn.textContent = 'Pausar';
+}
+
+function swPause() {
+  clearInterval(swInterval);
+  swElapsed = Date.now() - swStart;
+  swStart = null;
+  swRunning = false;
+  sep1.classList.remove('blinking');
+  actionMainBtn.textContent = 'Reanudar';
+}
+
+function swReset() {
+  clearInterval(swInterval);
+  swElapsed = 0; swStart = null; swRunning = false;
+  sep1.classList.remove('blinking');
+  renderDigits([0,0,0,0,0,0], true);
+  actionMainBtn.textContent = 'Iniciar';
+}
+
+// ── Timer ─────────────────────────────────────────────────
+let tmTotal    = 0;    // initial seconds
+let tmRemain   = 0;    // seconds left
+let tmStart    = null;
+let tmInterval = null;
+let tmRunning  = false;
+let tmFinished = false;
+
+// Web Audio beep
+let audioCtx = null;
+function beep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.6);
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.8);
+  } catch(e) {}
+}
+
+function tmDigits(secs) {
+  const hh = Math.floor(secs / 3600);
+  const mm = Math.floor((secs % 3600) / 60);
+  const ss = secs % 60;
+  return [
+    Math.floor(hh / 10), hh % 10,
+    Math.floor(mm / 10), mm % 10,
+    Math.floor(ss / 10), ss % 10,
+  ];
+}
+
+function tmFlash() {
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(c => {
+    c.classList.remove('flash');
+    void c.offsetWidth;
+    c.classList.add('flash');
+  });
+  setTimeout(() => cards.forEach(c => c.classList.remove('flash')), 1600);
+}
+
+function tmFinish() {
+  clearInterval(tmInterval);
+  tmRunning = false; tmFinished = true;
+  sep1.classList.remove('blinking');
+  renderDigits([0,0,0,0,0,0], true);
+  tmFlash();
+  beep();
+  actionMainBtn.textContent  = 'Iniciar';
+  actionResetBtn.textContent = 'Reiniciar';
+}
+
+function tmTick() {
+  if (tmStart === null) return;
+  const elapsed = Math.floor((Date.now() - tmStart) / 1000);
+  const rem = Math.max(0, tmRemain - elapsed);
+  renderDigits(tmDigits(rem), true);
+  if (rem === 0) tmFinish();
+}
+
+function startTimer(h, m, s) {
+  tmTotal  = h * 3600 + m * 60 + s;
+  tmRemain = tmTotal;
+  tmStart  = null;
+  tmRunning = false; tmFinished = false;
+  pair2.style.display = '';
+  sep2.style.display  = '';
+  ampmEl.style.display = 'none';
+  sep1.classList.remove('blinking');
+  renderDigits(tmDigits(tmRemain), false);
+  actionMainBtn.textContent  = 'Iniciar';
+  actionResetBtn.textContent = 'Reiniciar';
+  actionBar.classList.add('visible');
+}
+
+function tmRun() {
+  if (tmFinished || tmRemain === 0) return;
+  // If resuming, adjust start so elapsed counts correctly
+  const alreadyElapsed = tmTotal - tmRemain;
+  tmStart = Date.now() - alreadyElapsed * 1000;
+  tmRunning = true;
+  clearInterval(tmInterval);
+  tmInterval = setInterval(tmTick, 250);
+  sep1.classList.add('blinking');
+  actionMainBtn.textContent = 'Pausar';
+}
+
+function tmPause() {
+  if (!tmRunning) return;
+  const elapsed = Math.floor((Date.now() - tmStart) / 1000);
+  tmRemain = Math.max(0, tmRemain - elapsed);
+  tmStart  = null;
+  clearInterval(tmInterval);
+  tmRunning = false;
+  sep1.classList.remove('blinking');
+  actionMainBtn.textContent = 'Reanudar';
+}
+
+function tmReset() {
+  clearInterval(tmInterval);
+  tmStart = null; tmRunning = false; tmFinished = false;
+  tmRemain = tmTotal;
+  sep1.classList.remove('blinking');
+  renderDigits(tmDigits(tmRemain), true);
+  actionMainBtn.textContent  = 'Iniciar';
+}
+
+// ── Mode switching ─────────────────────────────────────────
+function stopAll() {
+  clearTimeout(clockTimeout); clockTimeout = null;
+  clearInterval(swInterval);  swInterval = null;
+  clearInterval(tmInterval);  tmInterval = null;
+  sep1.classList.remove('blinking');
+  swRunning = false; tmRunning = false;
+}
+
+function setMode(m) {
+  stopAll();
+  mode = m;
+
+  // reset button states
+  document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+
+  actionBar.classList.remove('visible');
+  timerSetup.classList.remove('visible');
+
+  if (m === 'clock') {
+    document.getElementById('btnClock').classList.add('active');
+    modeLabel.textContent = 'RELOJ';
+    startClock(true);
+  } else if (m === 'timer') {
+    document.getElementById('btnTimer').classList.add('active');
+    modeLabel.textContent = 'TEMPORIZADOR';
+    // Show setup overlay
+    timerSetup.classList.add('visible');
+    pair2.style.display = '';
+    sep2.style.display  = '';
+    ampmEl.style.display = 'none';
+    // Show current timer value or zeros
+    renderDigits(tmDigits(tmRemain || 0), false);
+  } else if (m === 'stopwatch') {
+    document.getElementById('btnStopwatch').classList.add('active');
+    modeLabel.textContent = 'CRONÓMETRO';
+    startStopwatch(false);
+  }
+}
+
+// ── Action button logic ────────────────────────────────────
+actionMainBtn.addEventListener('click', () => {
+  if (mode === 'stopwatch') {
+    if (!swRunning) swRun();
+    else            swPause();
+  } else if (mode === 'timer') {
+    if (tmFinished) { tmReset(); return; }
+    if (!tmRunning) tmRun();
+    else            tmPause();
+  }
+});
+
+actionResetBtn.addEventListener('click', () => {
+  if (mode === 'stopwatch') swReset();
+  else if (mode === 'timer') tmReset();
+});
+
+// ── Timer setup ────────────────────────────────────────────
+setupStartBtn.addEventListener('click', () => {
+  const h = Math.max(0, Math.min(23, parseInt(inputH.value) || 0));
+  const m = Math.max(0, Math.min(59, parseInt(inputM.value) || 0));
+  const s = Math.max(0, Math.min(59, parseInt(inputS.value) || 0));
+  if (h + m + s === 0) return;
+  timerSetup.classList.remove('visible');
+  startTimer(h, m, s);
+});
+
+setupCancelBtn.addEventListener('click', () => {
+  timerSetup.classList.remove('visible');
+  setMode('clock');
+});
+
+// Sanitize inputs
+[inputH, inputM, inputS].forEach(inp => {
+  inp.addEventListener('input', () => {
+    const max = inp === inputH ? 23 : 59;
+    let v = parseInt(inp.value);
+    if (isNaN(v) || v < 0) inp.value = 0;
+    if (v > max) inp.value = max;
+  });
+});
+
+// ── Mode buttons ──────────────────────────────────────────
+document.getElementById('btnClock').addEventListener('click', () => setMode('clock'));
+document.getElementById('btnTimer').addEventListener('click', () => setMode('timer'));
+document.getElementById('btnStopwatch').addEventListener('click', () => setMode('stopwatch'));
+
+// ── Fullscreen ────────────────────────────────────────────
+const fsIcon = document.getElementById('fsIcon');
+const fsIconExpand = `<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>`;
+const fsIconShrink = `<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 0 2 2v3M16 21v-3a2 2 0 0 0 2-2h3"/>`;
+
+document.getElementById('btnFullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || document.documentElement.mozRequestFullElement || function(){}).call(document.documentElement);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || function(){}).call(document);
+  }
+});
+
+document.addEventListener('fullscreenchange', updateFsIcon);
+document.addEventListener('webkitfullscreenchange', updateFsIcon);
+document.addEventListener('mozfullscreenchange', updateFsIcon);
+
+function updateFsIcon() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    fsIcon.innerHTML = fsIconShrink;
+    document.body.style.background = '#000';
+  } else {
+    fsIcon.innerHTML = fsIconExpand;
+    document.body.style.background = '';
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────
+setMode('clock');
 </script>
 </body>
 </html>
