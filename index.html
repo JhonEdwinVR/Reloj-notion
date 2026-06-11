@@ -44,6 +44,7 @@ body {
   gap: clamp(10px, 2.5vmin, 20px);
   user-select: none;
   position: relative;
+  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* ── Digits row ── */
@@ -305,17 +306,42 @@ body {
 }
 .card.flash { animation: flashCard 0.5s ease 3; }
 
-/* ── Fullscreen styles ── */
+/* ── Fullscreen styles ajustados ── */
 :fullscreen body,
 :-webkit-full-screen body,
 :-moz-full-screen body {
-  background: #000 !important;
+  background: #0a0a0a !important; /* Fondo inmersivo oscuro para toda la pantalla */
 }
+
 :fullscreen .clock-shell,
 :-webkit-full-screen .clock-shell,
 :-moz-full-screen .clock-shell {
-  background: #111;
-  transform: scale(1.8);
+  background: transparent; /* Quita el cuadro gris de fondo */
+  box-shadow: none;        /* Quita la sombra del contenedor */
+  transform: scale(1.6);   /* Escala inicial para pantallas pequeñas/móviles */
+}
+
+:fullscreen .timer-setup,
+:-webkit-full-screen .timer-setup,
+:-moz-full-screen .timer-setup {
+  background: rgba(10,10,10,0.9); /* Adapta el panel del temporizador para que no se vea como parche */
+}
+
+/* Escala dinámica para adaptarse a pantallas más grandes */
+@media (min-width: 768px) {
+  :fullscreen .clock-shell,
+  :-webkit-full-screen .clock-shell,
+  :-moz-full-screen .clock-shell {
+    transform: scale(2.2);
+  }
+}
+
+@media (min-width: 1200px) {
+  :fullscreen .clock-shell,
+  :-webkit-full-screen .clock-shell,
+  :-moz-full-screen .clock-shell {
+    transform: scale(2.8);
+  }
 }
 </style>
 </head>
@@ -323,7 +349,6 @@ body {
 
 <div class="clock-shell" id="shell">
 
-  <!-- Timer setup overlay -->
   <div class="timer-setup" id="timerSetup">
     <div class="timer-setup-title">Configurar Temporizador</div>
     <div class="timer-inputs">
@@ -348,10 +373,8 @@ body {
     </div>
   </div>
 
-  <!-- Mode label -->
   <div class="mode-label" id="modeLabel">RELOJ</div>
 
-  <!-- Digits -->
   <div class="digits-row">
     <div class="pair" id="pair-0">
       <div class="card" id="card-s0">
@@ -410,29 +433,24 @@ body {
     </div>
   </div>
 
-  <!-- Action bar (timer/stopwatch controls) -->
   <div class="action-bar" id="actionBar">
     <button class="act-btn primary" id="actionMainBtn">Iniciar</button>
     <button class="act-btn" id="actionResetBtn">Reiniciar</button>
   </div>
 
-  <!-- Controls bar (mode switcher + fullscreen) -->
   <div class="controls-bar">
-    <!-- Clock -->
     <button class="ctrl-btn active" id="btnClock" title="Reloj">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <polyline points="12 6 12 12 16 14"/>
       </svg>
     </button>
-    <!-- Timer -->
     <button class="ctrl-btn" id="btnTimer" title="Temporizador">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10 2h4M12 2v2M19.07 4.93l-1.41 1.41M12 4a8 8 0 1 1 0 16A8 8 0 0 1 12 4z"/>
         <polyline points="12 8 12 13 15 15"/>
       </svg>
     </button>
-    <!-- Stopwatch -->
     <button class="ctrl-btn" id="btnStopwatch" title="Cronómetro">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="13" r="8"/>
@@ -441,7 +459,6 @@ body {
         <line x1="15" y1="10" x2="12" y2="13"/>
       </svg>
     </button>
-    <!-- Fullscreen -->
     <button class="ctrl-btn" id="btnFullscreen" title="Pantalla completa">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="fsIcon">
         <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
@@ -908,10 +925,11 @@ document.addEventListener('mozfullscreenchange', updateFsIcon);
 function updateFsIcon() {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     fsIcon.innerHTML = fsIconShrink;
-    document.body.style.background = '#000';
+    // Opcional si prefieres dejar el fondo dictado por CSS
+    // document.body.style.background = '#0a0a0a'; 
   } else {
     fsIcon.innerHTML = fsIconExpand;
-    document.body.style.background = '';
+    // document.body.style.background = '';
   }
 }
 
