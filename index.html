@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flip Clock</title>
+<title>Flip Clock Refinado</title>
 <style>
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,6 +26,7 @@ body {
   overflow: hidden;
   padding: 20px;
   box-sizing: border-box;
+  transition: background 0.3s ease;
 }
 
 /* ── Outer wrapper ── */
@@ -100,13 +101,15 @@ body {
 .half.up   { top: 0;    align-items: flex-end;   background: linear-gradient(180deg,#161616,#111); }
 .half.down { bottom: 0; align-items: flex-start; background: linear-gradient(180deg,#0d0d0d,#131313); }
 
-/* ── Flaps animados ── */
+/* ── Flaps animados (z-index más alto) ── */
 .flap {
   position: absolute; left: 0; width: 100%; height: 50%;
   overflow: hidden;
   display: flex; justify-content: center;
   z-index: 2;
-  perspective: 600px;
+  /* Perspectiva aumentada para suavizar la distorsión mecánica en pantallas grandes */
+  perspective: 1000px;
+  backface-visibility: hidden; /* Crucial para estabilidad de render en 3D */
 }
 .flap.up   { top: 0;    align-items: flex-end;   background: linear-gradient(180deg,#161616,#111); transform-origin: bottom center; }
 .flap.down { bottom: 0; align-items: flex-start; background: linear-gradient(180deg,#0d0d0d,#131313); transform-origin: top center; }
@@ -133,13 +136,12 @@ body {
 .half.down .digit,
 .flap.down .digit { transform: translateY(-50%); }
 
-/* ── Línea divisoria central ── */
+/* ── Línea divisoria central refinada ── */
 .divider {
   position: absolute; top: 50%; left: 0;
-  width: 100%; height: 2px;
+  width: 100%; height: 1px; /* Línea más sharp */
   transform: translateY(-50%);
-  background: #000;
-  box-shadow: 0 0 4px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.9);
   z-index: 10;
   pointer-events: none;
 }
@@ -310,24 +312,24 @@ body {
 :fullscreen body,
 :-webkit-full-screen body,
 :-moz-full-screen body {
-  background: #0a0a0a !important; /* Fondo inmersivo oscuro para toda la pantalla */
+  background: #0a0a0a !important; /* Fondo inmersivo oscuro */
 }
 
 :fullscreen .clock-shell,
 :-webkit-full-screen .clock-shell,
 :-moz-full-screen .clock-shell {
-  background: transparent; /* Quita el cuadro gris de fondo */
-  box-shadow: none;        /* Quita la sombra del contenedor */
-  transform: scale(1.6);   /* Escala inicial para pantallas pequeñas/móviles */
+  background: transparent; /* Quita el cuadro gris */
+  box-shadow: none;        /* Quita la sombra */
+  transform: scale(1.6);   /* Escala inicial */
 }
 
 :fullscreen .timer-setup,
 :-webkit-full-screen .timer-setup,
 :-moz-full-screen .timer-setup {
-  background: rgba(10,10,10,0.9); /* Adapta el panel del temporizador para que no se vea como parche */
+  background: rgba(10,10,10,0.9);
 }
 
-/* Escala dinámica para adaptarse a pantallas más grandes */
+/* Escala dinámica para pantallas grandes */
 @media (min-width: 768px) {
   :fullscreen .clock-shell,
   :-webkit-full-screen .clock-shell,
@@ -469,8 +471,9 @@ body {
 </div>
 
 <script>
-const FLIP_MS = 200;
-const GAP_MS  = 8;
+// ── Configuración de animación refinada ──
+const FLIP_MS = 120; // Duración de cada mitad de la caída (snappier)
+const GAP_MS  = 0;   // Eliminada la pausa para un movimiento mecánico continuo
 
 // ── Slot factory ──────────────────────────────────────────
 function makeSlot(id) {
@@ -517,65 +520,75 @@ function flip(slot, newVal) {
   slot.flapDownNum.textContent = nv;
   slot.staticDown.textContent  = nv;
 
+  // Prepara estado inicial sin transiciones residuales
   slot.flapUp.style.transform    = 'rotateX(0deg)';
-  slot.flapDown.style.transform  = 'rotateX(90deg)';
+  slot.flapDown.style.transform  = 'rotateX(90deg)'; // Empieza oculto detrás
   slot.shadeUp.style.background  = 'transparent';
-  slot.shadeDown.style.background = 'rgba(0,0,0,0.55)';
+  slot.shadeDown.style.background = 'rgba(0,0,0,0.7)'; // Sombra inicial profunda abajo
 
+  // 1. Anima el flap superior cayendo: 0° → -90°
+  // Easing: ease-in mecánico (comienza lento, termina muy rápido como por gravedad)
   const animUp = slot.flapUp.animate(
     [
-      { transform: 'rotateX(0deg)',   easing: 'cubic-bezier(0.4,0,1,1)' },
+      { transform: 'rotateX(0deg)',   easing: 'cubic-bezier(0.7, 0, 1, 1)' },
       { transform: 'rotateX(-90deg)' }
     ],
     { duration: FLIP_MS, fill: 'forwards' }
   );
 
+  // Sombra que se intensifica mientras cae
   slot.shadeUp.animate(
     [
       { background: 'rgba(0,0,0,0)',    easing: 'ease-in' },
-      { background: 'rgba(0,0,0,0.7)' }
+      { background: 'rgba(0,0,0,0.8)' } // Sombra profunda de cierre
     ],
     { duration: FLIP_MS, fill: 'forwards' }
   );
 
+  // 2. Al completar la caída, arranca inmediatamente la subida
   animUp.onfinish = () => {
+    // Actualiza estática superior — la caída ya terminó
     slot.staticUp.textContent = nv;
-    slot.flapUp.style.transform = 'rotateX(-90deg)';
+    slot.flapUp.style.transform = 'rotateX(-90deg)'; // Oculta arriba
 
-    setTimeout(() => {
-      const animDown = slot.flapDown.animate(
-        [
-          { transform: 'rotateX(90deg)',  easing: 'cubic-bezier(0,0,0.6,1)' },
-          { transform: 'rotateX(0deg)' }
-        ],
-        { duration: FLIP_MS, fill: 'forwards' }
-      );
+    // 3. Anima el flap inferior subiendo: 90° → 0°
+    // Easing: ease-out suave (arranca rápido por el "impulso", se frena suavemente)
+    const animDown = slot.flapDown.animate(
+      [
+        { transform: 'rotateX(90deg)',  easing: 'cubic-bezier(0, 0, 0.3, 1)' },
+        { transform: 'rotateX(0deg)' }
+      ],
+      { duration: FLIP_MS, fill: 'forwards' }
+    );
 
-      slot.shadeDown.animate(
-        [
-          { background: 'rgba(0,0,0,0.55)', easing: 'ease-out' },
-          { background: 'rgba(0,0,0,0)' }
-        ],
-        { duration: FLIP_MS, fill: 'forwards' }
-      );
+    // Sombra que se disipa mientras sube
+    slot.shadeDown.animate(
+      [
+        { background: 'rgba(0,0,0,0.7)', easing: 'ease-out' }, // Empieza profundo
+        { background: 'rgba(0,0,0,0)' } // Termina limpio
+      ],
+      { duration: FLIP_MS, fill: 'forwards' }
+    );
 
-      animDown.onfinish = () => {
-        slot.flapUpNum.textContent   = nv;
-        slot.flapDownNum.textContent = nv;
-        slot.flapUp.style.transform    = 'rotateX(0deg)';
-        slot.flapDown.style.transform  = 'rotateX(0deg)';
-        slot.shadeUp.style.background  = 'transparent';
-        slot.shadeDown.style.background = 'transparent';
+    // 4. Cleanup final tras la subida
+    animDown.onfinish = () => {
+      // Resetea flaps a posición de reposo
+      slot.flapUpNum.textContent   = nv;
+      slot.flapDownNum.textContent = nv;
+      slot.flapUp.style.transform    = 'rotateX(0deg)';
+      slot.flapDown.style.transform  = 'rotateX(0deg)';
+      slot.shadeUp.style.background  = 'transparent';
+      slot.shadeDown.style.background = 'transparent';
 
-        slot.flapUp.getAnimations().forEach(a => a.cancel());
-        slot.flapDown.getAnimations().forEach(a => a.cancel());
-        slot.shadeUp.getAnimations().forEach(a => a.cancel());
-        slot.shadeDown.getAnimations().forEach(a => a.cancel());
+      // Cancela animaciones para liberar memoria
+      slot.flapUp.getAnimations().forEach(a => a.cancel());
+      slot.flapDown.getAnimations().forEach(a => a.cancel());
+      slot.shadeUp.getAnimations().forEach(a => a.cancel());
+      slot.shadeDown.getAnimations().forEach(a => a.cancel());
 
-        slot.current = nv;
-        slot.busy    = false;
-      };
-    }, GAP_MS);
+      slot.current = nv;
+      slot.busy    = false;
+    };
   };
 }
 
@@ -619,7 +632,7 @@ function clockDigits() {
   return [
     Math.floor(h / 10), h % 10,
     Math.floor(m / 10), m % 10,
-    0, 0 // placeholders – seconds pair hidden in clock mode
+    0, 0 // placeholders
   ];
 }
 
@@ -634,7 +647,6 @@ function scheduleClock() {
 
 function startClock(animate) {
   const d = clockDigits();
-  // In clock mode, only show 4 digits (HH:MM)
   pair2.style.display = 'none';
   sep2.style.display  = 'none';
   ampmEl.style.display = '';
@@ -705,14 +717,13 @@ function swReset() {
 }
 
 // ── Timer ─────────────────────────────────────────────────
-let tmTotal    = 0;    // initial seconds
+let tmTotal    = 0;    // seconds
 let tmRemain   = 0;    // seconds left
 let tmStart    = null;
 let tmInterval = null;
 let tmRunning  = false;
 let tmFinished = false;
 
-// Web Audio beep
 let audioCtx = null;
 function beep() {
   try {
@@ -788,7 +799,6 @@ function startTimer(h, m, s) {
 
 function tmRun() {
   if (tmFinished || tmRemain === 0) return;
-  // If resuming, adjust start so elapsed counts correctly
   const alreadyElapsed = tmTotal - tmRemain;
   tmStart = Date.now() - alreadyElapsed * 1000;
   tmRunning = true;
@@ -831,7 +841,6 @@ function setMode(m) {
   stopAll();
   mode = m;
 
-  // reset button states
   document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
 
   actionBar.classList.remove('visible');
@@ -844,12 +853,10 @@ function setMode(m) {
   } else if (m === 'timer') {
     document.getElementById('btnTimer').classList.add('active');
     modeLabel.textContent = 'TEMPORIZADOR';
-    // Show setup overlay
     timerSetup.classList.add('visible');
     pair2.style.display = '';
     sep2.style.display  = '';
     ampmEl.style.display = 'none';
-    // Show current timer value or zeros
     renderDigits(tmDigits(tmRemain || 0), false);
   } else if (m === 'stopwatch') {
     document.getElementById('btnStopwatch').classList.add('active');
@@ -890,7 +897,6 @@ setupCancelBtn.addEventListener('click', () => {
   setMode('clock');
 });
 
-// Sanitize inputs
 [inputH, inputM, inputS].forEach(inp => {
   inp.addEventListener('input', () => {
     const max = inp === inputH ? 23 : 59;
@@ -925,11 +931,10 @@ document.addEventListener('mozfullscreenchange', updateFsIcon);
 function updateFsIcon() {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     fsIcon.innerHTML = fsIconShrink;
-    // Opcional si prefieres dejar el fondo dictado por CSS
-    // document.body.style.background = '#0a0a0a'; 
+    document.body.style.background = '#0a0a0a';
   } else {
     fsIcon.innerHTML = fsIconExpand;
-    // document.body.style.background = '';
+    document.body.style.background = '';
   }
 }
 
