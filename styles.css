@@ -1,3 +1,4 @@
+
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -84,10 +85,9 @@ body {
   border-radius: clamp(8px, 1.4vmin, 18px);
   overflow: hidden;
   box-shadow:
-    0 30px 80px rgba(0,0,0,0.8),
-    0 6px 18px rgba(0,0,0,0.7),
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    inset 0 -1px 0 rgba(0,0,0,0.6);
+    0 18px 50px rgba(0,0,0,0.45),
+    0 4px 14px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.05);
   perspective: 2000px;
   perspective-origin: center center;
   transition: border-radius 0.3s, box-shadow 0.3s;
@@ -181,7 +181,7 @@ body {
   width: 100%; height: 2px;
   transform: translateY(-50%);
   background: #000;
-  box-shadow: 0 0 6px rgba(0,0,0,1);
+  box-shadow: 0 0 5px rgba(0,0,0,0.7);
   z-index: 10;
   pointer-events: none;
   transition: opacity 0.3s;
@@ -251,10 +251,17 @@ body {
 .ctrl-btn svg { display: block; }
 
 /* ── Auto-hide controls (idle state) ── */
+.controls-bar, .mode-label {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
 body.idle .controls-bar,
 body.idle .mode-label {
   opacity: 0;
   pointer-events: none;
+}
+body.idle:not(.fs-mode) .controls-bar,
+body.idle:not(.fs-mode) .mode-label {
+  transform: translateY(6px);
 }
 
 /* ── Timer/Stopwatch/Pomodoro action buttons ── */
@@ -266,7 +273,7 @@ body.idle .mode-label {
   height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: height 0.35s ease, opacity 0.3s ease, margin-top 0.35s ease;
+  transition: height 0.35s ease, opacity 0.3s ease, margin-top 0.35s ease, transform 0.5s ease;
   margin-top: 0;
 }
 .action-bar.visible {
@@ -275,6 +282,7 @@ body.idle .mode-label {
   margin-top: clamp(2px, 0.8vmin, 4px);
 }
 body.idle .action-bar { opacity: 0; pointer-events: none; }
+body.idle:not(.fs-mode) .action-bar { transform: translateY(6px); }
 
 .act-btn {
   background: rgba(255,255,255,0.06);
@@ -299,7 +307,7 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
   display: none;
   flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 2vmin, 16px);
+  gap: clamp(10px, 2vmin, 18px);
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -309,8 +317,8 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
   justify-content: center;
   z-index: 200;
   padding: clamp(20px, 4vmin, 32px) clamp(24px, 5vmin, 40px);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.85), 0 6px 18px rgba(0,0,0,0.7);
-  min-width: 300px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.4);
+  min-width: 280px;
 }
 .timer-setup.visible { display: flex; }
 .timer-setup-title {
@@ -321,18 +329,72 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
   text-transform: uppercase;
   font-family: Arial, sans-serif;
 }
-.timer-inputs {
+
+/* ── Wheel picker (iOS-style vertical scroll wheels) ── */
+.wheel-picker {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: clamp(6px, 1.2vmin, 12px);
+  align-items: flex-start;
+  gap: clamp(8px, 1.6vmin, 16px);
 }
-.timer-input-group {
+.wheel-highlight {
+  position: absolute;
+  left: -8px; right: -8px;
+  top: var(--wheel-item-h, 44px);
+  height: var(--wheel-item-h, 44px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.wheel-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
 }
-.timer-input-group label {
+.wheel {
+  width: clamp(56px, 10vmin, 80px);
+  height: calc(var(--wheel-item-h, 44px) * 3);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 32%, #000 68%, transparent);
+          mask-image: linear-gradient(to bottom, transparent, #000 32%, #000 68%, transparent);
+}
+.wheel::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.wheel-item {
+  height: var(--wheel-item-h, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(20px, 4.2vmin, 32px);
+  font-weight: 900;
+  font-family: 'Arial Black', Arial, sans-serif;
+  color: #2c2c2c;
+  scroll-snap-align: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.wheel-item.selected {
+  color: #fff;
+  transform: scale(1.08);
+}
+.wheel-spacer {
+  height: var(--wheel-item-h, 44px);
+  flex-shrink: 0;
+}
+.wheel-sep {
+  font-size: clamp(20px, 4.2vmin, 32px);
+  font-weight: 900;
+  color: #2a2a2a;
+  font-family: 'Arial Black', Arial, sans-serif;
+  height: calc(var(--wheel-item-h, 44px) * 3);
+  display: flex;
+  align-items: center;
+}
+.wheel-label {
   font-size: clamp(8px, 0.9vmin, 10px);
   color: #3a3a3a;
   font-weight: 700;
@@ -340,31 +402,12 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
   text-transform: uppercase;
   font-family: Arial, sans-serif;
 }
-.timer-input-group input {
-  width: clamp(52px, 10vmin, 76px);
-  height: clamp(44px, 8vmin, 62px);
-  background: #0e0e0e;
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  color: #fff;
-  font-size: clamp(22px, 4.5vmin, 36px);
-  font-weight: 900;
-  font-family: 'Arial Black', Arial, sans-serif;
-  text-align: center;
-  outline: none;
-  transition: border-color 0.2s;
-  -moz-appearance: textfield;
+.wheel:focus-visible {
+  outline: 1px solid rgba(255,255,255,0.25);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
-.timer-input-group input::-webkit-inner-spin-button,
-.timer-input-group input::-webkit-outer-spin-button { -webkit-appearance: none; }
-.timer-input-group input:focus { border-color: #444; }
-.timer-sep-dot {
-  font-size: clamp(20px, 4vmin, 32px);
-  font-weight: 900;
-  color: #2a2a2a;
-  margin-bottom: 18px;
-  font-family: 'Arial Black', Arial, sans-serif;
-}
+
 .timer-setup-btns {
   display: flex;
   gap: clamp(8px, 1.5vmin, 14px);
@@ -375,29 +418,29 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: clamp(5px, 1vmin, 8px);
-  max-width: 320px;
+  gap: clamp(4px, 0.8vmin, 6px);
+  max-width: 280px;
 }
 .preset-btn {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #777;
-  font-size: clamp(9px, 1vmin, 11px);
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: clamp(9px, 0.95vmin, 10px);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   font-family: Arial, sans-serif;
-  padding: clamp(4px,0.7vmin,6px) clamp(9px,1.6vmin,13px);
+  padding: clamp(3px,0.6vmin,5px) clamp(7px,1.3vmin,10px);
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
-.preset-btn:hover { background: rgba(255,255,255,0.1); color: #ddd; border-color: rgba(255,255,255,0.18); }
-.preset-btn.active { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.22); }
+.preset-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }
+.preset-btn.active { background: rgba(255,255,255,0.12); color: #fff; }
 
 /* ── Finish flash ── */
 @keyframes flashCard {
-  0%,100% { box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 6px 18px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05); }
-  50%     { box-shadow: 0 30px 80px rgba(255,255,255,0.08), 0 6px 18px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.18); }
+  0%,100% { box-shadow: 0 18px 50px rgba(0,0,0,0.45), 0 4px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05); }
+  50%     { box-shadow: 0 18px 50px rgba(255,255,255,0.08), 0 4px 14px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.18); }
 }
 .card.flash { animation: flashCard 0.55s ease 3; }
 
@@ -518,8 +561,8 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
 #shell[data-style="airport"] .card {
   border-radius: clamp(2px, 0.3vmin, 4px);
   box-shadow:
-    0 20px 60px rgba(0,0,0,0.75),
-    0 4px 12px rgba(0,0,0,0.65),
+    0 14px 40px rgba(0,0,0,0.45),
+    0 3px 10px rgba(0,0,0,0.4),
     inset 0 1px 0 rgba(255,255,255,0.04);
 }
 #shell[data-style="airport"] .half.up,
@@ -536,10 +579,9 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
   background: #0a0a0a;
   border-radius: clamp(4px, 0.6vmin, 10px);
   box-shadow:
-    0 40px 100px rgba(0,0,0,0.95),
-    0 12px 32px rgba(0,0,0,0.9),
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -3px 6px rgba(0,0,0,0.85);
+    0 26px 70px rgba(0,0,0,0.6),
+    0 8px 22px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.08);
 }
 #shell[data-style="mechanical"] .half.up,
 #shell[data-style="mechanical"] .flap-wrap.up .flap {
@@ -556,7 +598,7 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
     0 12px 24px rgba(0,0,0,0.7);
 }
 #shell[data-style="mechanical"] .divider {
-  box-shadow: 0 0 10px rgba(0,0,0,1);
+  box-shadow: 0 0 8px rgba(0,0,0,0.8);
   height: 3px;
 }
 
@@ -584,6 +626,17 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
 #shell[data-style="ultra"] .digit {
   text-shadow: 0 4px 20px rgba(0,0,0,0.45);
 }
+/* Finish flash: the default .card.flash animates box-shadow, which (like
+   WAAPI effects) overrides "box-shadow: none" and would paint a hard
+   rectangle behind card-free digits. Ultra mode flashes by brightening
+   the glyphs themselves instead. */
+#shell[data-style="ultra"] .card.flash {
+  animation: flashUltra 0.55s ease 3;
+}
+@keyframes flashUltra {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.7); }
+}
 
 /* ── Fullscreen / screensaver mode ── */
 :fullscreen body,
@@ -591,11 +644,66 @@ body.idle .action-bar { opacity: 0; pointer-events: none; }
 :-moz-full-screen body {
   background: #000 !important;
 }
-body.fs-mode .controls-bar,
-body.fs-mode .mode-label,
-body.fs-mode .action-bar,
+
+/* In fullscreen, the controls become a floating pill anchored to the
+   bottom edge; the mode label and action bar float near the top/bottom.
+   All three fade + slide on idle, exactly like a video player's UI. */
+body.fs-mode .controls-bar {
+  position: fixed;
+  left: 50%; bottom: 28px;
+  transform: translate(-50%, 0);
+  margin-top: 0;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  z-index: 100;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+body.fs-mode .mode-label {
+  position: fixed;
+  top: 28px; left: 50%;
+  transform: translate(-50%, 0);
+  z-index: 100;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+body.fs-mode .action-bar.visible {
+  position: fixed;
+  left: 50%; bottom: 88px;
+  transform: translate(-50%, 0);
+  margin-top: 0;
+  z-index: 100;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
 body.fs-mode .settings-panel {
-  display: none !important;
+  z-index: 150;
+}
+
+/* Idle: fade + slide away, never display:none — keeps everything
+   reachable the instant the cursor moves again. */
+body.fs-mode.idle .controls-bar {
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  pointer-events: none;
+}
+body.fs-mode.idle .mode-label {
+  opacity: 0;
+  transform: translate(-50%, -12px);
+  pointer-events: none;
+}
+body.fs-mode.idle .action-bar {
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  pointer-events: none;
+}
+/* The settings panel itself stays put even when idle — only the trigger
+   (inside .controls-bar) fades; if it's open, keep it open and reachable. */
+body.fs-mode.idle .settings-panel.visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
 /* ─────────────────────────────────────────────

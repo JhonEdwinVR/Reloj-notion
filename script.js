@@ -83,9 +83,9 @@ const sep2           = document.getElementById('sep2');
 const timerSetup     = document.getElementById('timerSetup');
 const setupStartBtn  = document.getElementById('setupStartBtn');
 const setupCancelBtn = document.getElementById('setupCancelBtn');
-const inputH         = document.getElementById('inputH');
-const inputM         = document.getElementById('inputM');
-const inputS         = document.getElementById('inputS');
+const wheelH         = document.getElementById('wheelH');
+const wheelM         = document.getElementById('wheelM');
+const wheelS         = document.getElementById('wheelS');
 const presetRow      = document.getElementById('presetRow');
 const pair2          = document.getElementById('pair-2');
 const shell          = document.getElementById('shell');
@@ -110,6 +110,18 @@ function totalSpeedMult() {
 function flipDuration() {
   const base = 210 + Math.random() * 50;
   return Math.round(base * totalSpeedMult());
+}
+
+/**
+ * Shade/cast-shadow intensity, scaled per style.
+ * Web Animations effects override !important author CSS, so Ultra mode's
+ * "no rectangles" guarantee has to come from here, not from CSS — by
+ * driving every shade alpha to 0 the animations have nothing to paint.
+ */
+const STYLE_SHADE_MULT = { classic: 1, airport: 0.85, mechanical: 1.1, ultra: 0 };
+function shadeRGBA(alpha) {
+  const mult = STYLE_SHADE_MULT[settings.style] ?? 1;
+  return `rgba(0,0,0,${(alpha * mult).toFixed(3)})`;
 }
 
 function makeSlot(id) {
@@ -143,7 +155,9 @@ function setImmediate(slot, val) {
   slot.flapUpNum.textContent   = v;
   slot.flapDownNum.textContent = v;
   slot.flapUp.style.transform    = 'rotateX(0deg)';
+  slot.flapUp.style.visibility   = 'visible';
   slot.flapDown.style.transform  = 'rotateX(0deg)';
+  slot.flapDown.style.visibility = 'visible';
   slot.shadeUp.style.background  = 'transparent';
   slot.shadeDown.style.background = 'transparent';
   slot.castShade.style.background = 'transparent';
@@ -161,14 +175,17 @@ function flip(slot, newVal) {
   const durUp   = flipDuration();
   const durDown = flipDuration();
 
-  slot.staticDown.textContent  = nv;
   slot.flapUpNum.textContent   = oldVal;
-  slot.flapDownNum.textContent = nv;
+  // flapDownNum is intentionally left untouched until phase 2 begins —
+  // see below. Combined with visibility:hidden this guarantees the new
+  // digit cannot be glimpsed underneath/behind the upper flap.
 
   slot.flapUp.style.transform   = 'rotateX(0deg)';
+  slot.flapUp.style.visibility  = 'visible';
   slot.flapDown.style.transform = 'rotateX(90deg)';
+  slot.flapDown.style.visibility = 'hidden';
   slot.shadeUp.style.background   = 'transparent';
-  slot.shadeDown.style.background = 'rgba(0,0,0,0.65)';
+  slot.shadeDown.style.background = shadeRGBA(0.55);
   slot.castShade.style.background = 'transparent';
 
   // Phase 1: upper flap falls (0° → -90°)
@@ -182,9 +199,9 @@ function flip(slot, newVal) {
 
   slot.shadeUp.animate(
     [
-      { background: 'rgba(0,0,0,0)',    offset: 0,   easing: 'ease-in' },
-      { background: 'rgba(0,0,0,0.35)', offset: 0.6, easing: 'ease-in' },
-      { background: 'rgba(0,0,0,0.85)', offset: 1 }
+      { background: 'rgba(0,0,0,0)',  offset: 0,   easing: 'ease-in' },
+      { background: shadeRGBA(0.28),  offset: 0.6, easing: 'ease-in' },
+      { background: shadeRGBA(0.7),   offset: 1 }
     ],
     { duration: durUp, fill: 'forwards' }
   );
@@ -192,9 +209,9 @@ function flip(slot, newVal) {
   // Dynamic cast shadow on the lower static half
   slot.castShade.animate(
     [
-      { background: 'rgba(0,0,0,0)',     offset: 0,   easing: 'ease-in' },
-      { background: 'rgba(0,0,0,0.45)',  offset: 0.7, easing: 'ease-in' },
-      { background: 'rgba(0,0,0,0.6)',   offset: 1 }
+      { background: 'rgba(0,0,0,0)', offset: 0,   easing: 'ease-in' },
+      { background: shadeRGBA(0.35), offset: 0.7, easing: 'ease-in' },
+      { background: shadeRGBA(0.5),  offset: 1 }
     ],
     { duration: durUp, fill: 'forwards' }
   );
@@ -202,12 +219,21 @@ function flip(slot, newVal) {
   animUp.onfinish = () => {
     slot.staticUp.textContent = nv;
     slot.flapUp.getAnimations().forEach(a => a.cancel());
-    slot.flapUp.style.transform = 'rotateX(-90deg)';
+    slot.flapUp.style.transform  = 'rotateX(-90deg)';
+    slot.flapUp.style.visibility = 'hidden';
     slot.shadeUp.getAnimations().forEach(a => a.cancel());
     slot.shadeUp.style.background = 'transparent';
 
     // Phase 2: lower flap swings out (90° → 0°)
     setTimeout(() => {
+      // Only now does the lower half become the new value, and only now
+      // does the lower flap become visible — it was hidden (visibility +
+      // edge-on rotation) for the entire phase 1, so the new digit can
+      // never be glimpsed early.
+      slot.staticDown.textContent  = nv;
+      slot.flapDownNum.textContent = nv;
+      slot.flapDown.style.visibility = 'visible';
+
       const animDown = slot.flapDown.animate(
         [
           { transform: 'rotateX(90deg)', easing: EASE_DOWN },
@@ -218,7 +244,7 @@ function flip(slot, newVal) {
 
       slot.castShade.animate(
         [
-          { background: 'rgba(0,0,0,0.6)', easing: 'ease-out' },
+          { background: shadeRGBA(0.5), easing: 'ease-out' },
           { background: 'rgba(0,0,0,0)' }
         ],
         { duration: durDown, fill: 'forwards' }
@@ -226,7 +252,7 @@ function flip(slot, newVal) {
 
       slot.shadeDown.animate(
         [
-          { background: 'rgba(0,0,0,0.65)', easing: 'ease-out' },
+          { background: shadeRGBA(0.55), easing: 'ease-out' },
           { background: 'rgba(0,0,0,0)' }
         ],
         { duration: durDown, fill: 'forwards' }
@@ -241,6 +267,7 @@ function flip(slot, newVal) {
         slot.shadeDown.getAnimations().forEach(a => a.cancel());
         slot.castShade.getAnimations().forEach(a => a.cancel());
         slot.flapUp.style.transform    = 'rotateX(0deg)';
+        slot.flapUp.style.visibility   = 'visible';
         slot.flapDown.style.transform  = 'rotateX(0deg)';
         slot.shadeUp.style.background  = 'transparent';
         slot.shadeDown.style.background = 'transparent';
@@ -822,6 +849,10 @@ function setMode(m) {
       title: `Temporizador – ${BASE_TITLE}`,
     });
     timerSetup.classList.add('visible');
+    // .timer-setup is display:none until now, so any scrollTop set while
+    // building the wheels was clamped to 0. Re-sync on the next frame
+    // (after layout has occurred) so the wheels show their real values.
+    requestAnimationFrame(() => requestAnimationFrame(refreshWheelPositions));
   } else if (m === 'stopwatch') {
     document.getElementById('btnStopwatch').classList.add('active');
     Stopwatch.start(true);
@@ -856,12 +887,86 @@ actionResetBtn.addEventListener('click', () => {
 });
 
 /* ════════════════════════════════════════════
-   TIMER SETUP (inputs + presets)
+   TIMER SETUP — minimalist vertical wheel pickers (iOS-style)
    ════════════════════════════════════════════ */
+const WHEEL_ITEM_H = 44;
+document.documentElement.style.setProperty('--wheel-item-h', `${WHEEL_ITEM_H}px`);
+
+function buildWheel(el, max, initial) {
+  el.innerHTML = '';
+  el.appendChild(wheelSpacer());
+  for (let v = 0; v <= max; v++) {
+    const item = document.createElement('div');
+    item.className = 'wheel-item';
+    item.textContent = String(v).padStart(2, '0');
+    item.dataset.val = v;
+    el.appendChild(item);
+  }
+  el.appendChild(wheelSpacer());
+  el.dataset.target = initial;
+  el.scrollTop = initial * WHEEL_ITEM_H;
+  syncWheelSelection(el);
+}
+function wheelSpacer() {
+  const d = document.createElement('div');
+  d.className = 'wheel-spacer';
+  return d;
+}
+function syncWheelSelection(el) {
+  const idx = Math.round(el.scrollTop / WHEEL_ITEM_H);
+  const items = el.querySelectorAll('.wheel-item');
+  items.forEach((it, i) => it.classList.toggle('selected', i === idx));
+  const val = wheelValue(el);
+  el.setAttribute('aria-valuenow', val);
+  el.dataset.target = val;
+}
+function wheelValue(el) {
+  const items = el.querySelectorAll('.wheel-item');
+  const idx = Math.max(0, Math.min(items.length - 1, Math.round(el.scrollTop / WHEEL_ITEM_H)));
+  return items[idx] ? parseInt(items[idx].dataset.val, 10) : 0;
+}
+function setWheelValue(el, val, smooth = true) {
+  el.dataset.target = val;
+  el.scrollTo({ top: val * WHEEL_ITEM_H, behavior: smooth ? 'smooth' : 'auto' });
+  // scrollTo with smooth behavior updates scrollTop asynchronously;
+  // sync immediately too so the highlighted item reacts right away.
+  syncWheelSelection(el);
+}
+
+/**
+ * Re-applies each wheel's last known value to scrollTop. Needed because
+ * .timer-setup is `display:none` until opened — any scrollTop set while
+ * hidden gets clamped to 0 (zero-height container), so the wheels must
+ * be re-synced on the frame after they become visible.
+ */
+function refreshWheelPositions() {
+  [wheelH, wheelM, wheelS].forEach(el => {
+    const target = parseInt(el.dataset.target, 10) || 0;
+    el.scrollTop = target * WHEEL_ITEM_H;
+    syncWheelSelection(el);
+  });
+}
+
+[wheelH, wheelM, wheelS].forEach(el => {
+  let scrollTimer;
+  el.addEventListener('scroll', () => {
+    syncWheelSelection(el);
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => syncWheelSelection(el), 100);
+  }, { passive: true });
+
+  el.addEventListener('keydown', (e) => {
+    const max = parseInt(el.getAttribute('aria-valuemax'), 10);
+    const current = wheelValue(el);
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setWheelValue(el, Math.min(max, current + 1)); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setWheelValue(el, Math.max(0, current - 1)); }
+  });
+});
+
 setupStartBtn.addEventListener('click', () => {
-  const h = Math.max(0, Math.min(23, parseInt(inputH.value) || 0));
-  const m = Math.max(0, Math.min(59, parseInt(inputM.value) || 0));
-  const s = Math.max(0, Math.min(59, parseInt(inputS.value) || 0));
+  const h = wheelValue(wheelH);
+  const m = wheelValue(wheelM);
+  const s = wheelValue(wheelS);
   if (h + m + s === 0) return;
   timerSetup.classList.remove('visible');
   ensureNotificationPermission();
@@ -873,26 +978,25 @@ setupCancelBtn.addEventListener('click', () => {
   setMode('clock');
 });
 
-[inputH, inputM, inputS].forEach(inp => {
-  inp.addEventListener('input', () => {
-    const max = inp === inputH ? 23 : 59;
-    let v = parseInt(inp.value);
-    if (isNaN(v) || v < 0) inp.value = 0;
-    if (v > max) inp.value = max;
-    presetRow.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-  });
-  inp.addEventListener('focus', () => inp.select());
-});
-
 presetRow.querySelectorAll('.preset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     presetRow.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const sec = parseInt(btn.dataset.sec);
-    inputH.value = Math.floor(sec / 3600);
-    inputM.value = Math.floor((sec % 3600) / 60);
-    inputS.value = sec % 60;
+    const sec = parseInt(btn.dataset.sec, 10);
+    setWheelValue(wheelH, Math.floor(sec / 3600));
+    setWheelValue(wheelM, Math.floor((sec % 3600) / 60));
+    setWheelValue(wheelS, sec % 60);
   });
+});
+
+// Deselect presets once the user manually scrolls a wheel
+[wheelH, wheelM, wheelS].forEach(el => {
+  el.addEventListener('wheel', () => {
+    presetRow.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  }, { passive: true });
+  el.addEventListener('touchmove', () => {
+    presetRow.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  }, { passive: true });
 });
 
 /* ════════════════════════════════════════════
@@ -1064,6 +1168,10 @@ bindSegRow('formatRow', settings.format24 ? '24' : '12', (v) => {
   settings.format24 = (v === '24');
   if (state.mode === 'clock') Clock.tick(false);
 });
+
+buildWheel(wheelH, 23, 0);
+buildWheel(wheelM, 59, 5);
+buildWheel(wheelS, 59, 0);
 
 setMode('clock');
 resetIdle();

@@ -24,20 +24,21 @@
 <!-- Timer setup (fixed overlay, outside shell) -->
 <div class="timer-setup" id="timerSetup">
   <div class="timer-setup-title">Configurar Temporizador</div>
-  <div class="timer-inputs">
-    <div class="timer-input-group">
-      <input type="number" id="inputH" min="0" max="23" value="0" aria-label="Horas">
-      <label for="inputH">horas</label>
+  <div class="wheel-picker">
+    <div class="wheel-highlight" aria-hidden="true"></div>
+    <div class="wheel-col">
+      <div class="wheel" id="wheelH" role="spinbutton" tabindex="0" aria-label="Horas" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0"></div>
+      <span class="wheel-label">horas</span>
     </div>
-    <div class="timer-sep-dot">:</div>
-    <div class="timer-input-group">
-      <input type="number" id="inputM" min="0" max="59" value="5" aria-label="Minutos">
-      <label for="inputM">min</label>
+    <div class="wheel-sep" aria-hidden="true">:</div>
+    <div class="wheel-col">
+      <div class="wheel" id="wheelM" role="spinbutton" tabindex="0" aria-label="Minutos" aria-valuemin="0" aria-valuemax="59" aria-valuenow="5"></div>
+      <span class="wheel-label">min</span>
     </div>
-    <div class="timer-sep-dot">:</div>
-    <div class="timer-input-group">
-      <input type="number" id="inputS" min="0" max="59" value="0" aria-label="Segundos">
-      <label for="inputS">seg</label>
+    <div class="wheel-sep" aria-hidden="true">:</div>
+    <div class="wheel-col">
+      <div class="wheel" id="wheelS" role="spinbutton" tabindex="0" aria-label="Segundos" aria-valuemin="0" aria-valuemax="59" aria-valuenow="0"></div>
+      <span class="wheel-label">seg</span>
     </div>
   </div>
   <div class="preset-row" id="presetRow">
