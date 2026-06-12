@@ -28,6 +28,16 @@ body {
   box-sizing: border-box;
 }
 
+/* ── Entry animation wrapper (independent of user scale) ── */
+.entry-wrap {
+  opacity: 0;
+  transform: scale(0.95);
+  animation: entryIn 600ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+@keyframes entryIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* ── Clock wrapper: transparent, no outer shell ── */
 .clock-shell {
   display: inline-flex;
@@ -40,7 +50,6 @@ body {
   user-select: none;
   position: relative;
   transform-origin: center center;
-  /* Scale is applied via JS using CSS var */
   transform: scale(var(--clock-scale, 1));
   transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
@@ -71,28 +80,27 @@ body {
 @keyframes blink { 0%,100%{background:#555} 50%{background:#1a1a1a} }
 
 /* ── Par de dígitos ── */
-.pair { display: flex; gap: clamp(5px, 1.2vmin, 10px); }
+.pair { display: flex; gap: clamp(6px, 1.4vmin, 12px); }
 
-/* ── Tarjeta individual — perspectiva real aplicada aquí ── */
+/* ── Tarjeta individual — premium depth, perspectiva real ── */
 .card {
   position: relative;
-  width:  clamp(50px, 10.5vmin, 110px);
-  height: clamp(70px, 14vmin,  148px);
+  width:  clamp(54px, 11vmin, 120px);
+  height: clamp(76px, 15vmin,  162px);
   background: #111;
-  border-radius: clamp(5px, 0.8vmin, 8px);
-  /* overflow hidden SÓLO en la card, no en los flaps */
+  border-radius: clamp(8px, 1.4vmin, 18px);
   overflow: hidden;
   box-shadow:
-    0 8px 32px rgba(0,0,0,0.95),
-    0 2px 8px rgba(0,0,0,0.8),
+    0 30px 80px rgba(0,0,0,0.8),
+    0 6px 18px rgba(0,0,0,0.7),
     inset 0 1px 0 rgba(255,255,255,0.05),
     inset 0 -1px 0 rgba(0,0,0,0.6);
-  /* Perspectiva real para todos los hijos 3D */
   perspective: 2000px;
   perspective-origin: center center;
+  transition: border-radius 0.3s, box-shadow 0.3s;
 }
 
-/* ── Mitades estáticas (siempre visibles, z-index bajo) ── */
+/* ── Mitades estáticas ── */
 .half {
   position: absolute; left: 0; width: 100%; height: 50%;
   overflow: hidden;
@@ -110,17 +118,16 @@ body {
   background: linear-gradient(180deg, #0c0c0c, #141414);
 }
 
-/* ── Flap wrapper: contexto 3D, sin overflow para que el giro no se corte ── */
+/* ── Flap wrapper: contexto 3D ── */
 .flap-wrap {
   position: absolute; left: 0; width: 100%; height: 50%;
   z-index: 2;
   overflow: hidden;
-  /* El overflow se maneja clippeando ANTES de la perspectiva */
 }
 .flap-wrap.up   { top: 0; }
 .flap-wrap.down { bottom: 0; }
 
-/* ── La propia hoja que gira ── */
+/* ── La hoja que gira ── */
 .flap {
   position: absolute; left: 0; width: 100%; height: 100%;
   display: flex; justify-content: center;
@@ -139,7 +146,7 @@ body {
   transform-origin: top center;
 }
 
-/* ── Overlay de sombra sobre el flap ── */
+/* ── Overlay de sombra sobre el flap / mitad ── */
 .flap-shade {
   position: absolute; inset: 0;
   background: transparent;
@@ -147,19 +154,28 @@ body {
   pointer-events: none;
   backface-visibility: hidden;
 }
+/* Sombra proyectada estática (sobre la mitad inferior, fuera del flap) */
+.cast-shade {
+  position: absolute; inset: 0;
+  background: transparent;
+  z-index: 3;
+  pointer-events: none;
+}
 
-/* ── Números ── */
+/* ── Números: profundidad tipográfica ── */
 .digit {
-  font-size: clamp(40px, 8.8vmin, 96px);
+  font-size: clamp(42px, 9.2vmin, 100px);
   font-weight: 900;
   color: #fff;
   line-height: 1;
   letter-spacing: -0.02em;
   text-shadow:
-    0 1px 0 rgba(255,255,255,0.04),
-    0 3px 8px rgba(0,0,0,0.95);
+    0 1px 0 rgba(255,255,255,0.03),
+    0 2px 4px rgba(0,0,0,0.8),
+    0 8px 16px rgba(0,0,0,0.5);
   position: relative;
   backface-visibility: hidden;
+  transition: font-family 0.2s, letter-spacing 0.2s;
 }
 .half.up   .digit,
 .flap-wrap.up   .flap .digit { transform: translateY(50%); }
@@ -175,6 +191,7 @@ body {
   box-shadow: 0 0 6px rgba(0,0,0,1);
   z-index: 10;
   pointer-events: none;
+  transition: opacity 0.3s;
 }
 
 /* ── Brillo de bisel superior ── */
@@ -185,6 +202,7 @@ body {
   background: rgba(255,255,255,0.06);
   z-index: 12;
   pointer-events: none;
+  transition: opacity 0.3s;
 }
 
 /* ── Badge AM/PM ── */
@@ -196,6 +214,7 @@ body {
   color: #3a3a3a; text-transform: uppercase;
   font-family: Arial, sans-serif;
   z-index: 11; pointer-events: none;
+  transition: opacity 0.3s;
 }
 
 /* ── Mode Label ── */
@@ -208,7 +227,7 @@ body {
   font-family: Arial, sans-serif;
   text-align: center;
   height: 13px;
-  transition: opacity 0.3s;
+  transition: opacity 0.4s;
 }
 
 /* ── Controls bar ── */
@@ -218,6 +237,7 @@ body {
   justify-content: center;
   gap: clamp(6px, 1.5vmin, 14px);
   margin-top: clamp(2px, 0.8vmin, 6px);
+  transition: opacity 0.5s ease;
 }
 
 .ctrl-btn {
@@ -237,7 +257,14 @@ body {
 .ctrl-btn.active { opacity: 0.85; }
 .ctrl-btn svg { display: block; }
 
-/* ── Timer/Stopwatch action buttons ── */
+/* ── Auto-hide controls (idle state) ── */
+body.idle .controls-bar,
+body.idle .mode-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Timer/Stopwatch/Pomodoro action buttons ── */
 .action-bar {
   display: flex;
   align-items: center;
@@ -254,6 +281,7 @@ body {
   opacity: 1;
   margin-top: clamp(2px, 0.8vmin, 4px);
 }
+body.idle .action-bar { opacity: 0; pointer-events: none; }
 
 .act-btn {
   background: rgba(255,255,255,0.06);
@@ -278,18 +306,18 @@ body {
   display: none;
   flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 2vmin, 18px);
+  gap: clamp(10px, 2vmin, 16px);
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   background: #161616;
   border: 1px solid #222;
-  border-radius: 12px;
+  border-radius: 14px;
   justify-content: center;
   z-index: 200;
   padding: clamp(20px, 4vmin, 32px) clamp(24px, 5vmin, 40px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.7);
-  min-width: 280px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.85), 0 6px 18px rgba(0,0,0,0.7);
+  min-width: 300px;
 }
 .timer-setup.visible { display: flex; }
 .timer-setup-title {
@@ -349,10 +377,34 @@ body {
   gap: clamp(8px, 1.5vmin, 14px);
 }
 
+/* ── Quick presets ── */
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(5px, 1vmin, 8px);
+  max-width: 320px;
+}
+.preset-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #777;
+  font-size: clamp(9px, 1vmin, 11px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-family: Arial, sans-serif;
+  padding: clamp(4px,0.7vmin,6px) clamp(9px,1.6vmin,13px);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.preset-btn:hover { background: rgba(255,255,255,0.1); color: #ddd; border-color: rgba(255,255,255,0.18); }
+.preset-btn.active { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.22); }
+
 /* ── Finish flash ── */
 @keyframes flashCard {
-  0%,100% { box-shadow: 0 8px 32px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05); }
-  50%     { box-shadow: 0 8px 32px rgba(255,255,255,0.1),  0 2px 8px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.18); }
+  0%,100% { box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 6px 18px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05); }
+  50%     { box-shadow: 0 30px 80px rgba(255,255,255,0.08), 0 6px 18px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.18); }
 }
 .card.flash { animation: flashCard 0.55s ease 3; }
 
@@ -365,11 +417,13 @@ body {
   bottom: 28px; right: 28px;
   background: #161616;
   border: 1px solid #222;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 18px 22px;
   z-index: 150;
-  min-width: 220px;
+  min-width: 240px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6);
+  max-height: 80vh;
+  overflow-y: auto;
 }
 .settings-panel.visible { display: flex; }
 .settings-title {
@@ -387,7 +441,7 @@ body {
 }
 .settings-row label {
   font-size: 10px;
-  color: #444;
+  color: #555;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -397,7 +451,7 @@ body {
   align-items: center;
 }
 .settings-row label span {
-  color: #666;
+  color: #777;
   font-size: 10px;
   letter-spacing: 0;
   font-weight: 700;
@@ -433,16 +487,115 @@ body {
   box-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
-/* ── Fullscreen ── */
+/* Segmented controls */
+.seg-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.seg-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-family: Arial, sans-serif;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+.seg-btn:hover { background: rgba(255,255,255,0.1); color: #ccc; }
+.seg-btn.active { background: rgba(255,255,255,0.16); color: #fff; border-color: rgba(255,255,255,0.25); }
+
+/* ─────────────────────────────────────────────
+   CLOCK STYLE VARIANTS
+   ───────────────────────────────────────────── */
+
+/* Airport — narrow, fast, panel-board */
+#shell[data-style="airport"] .digit {
+  font-family: 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: -0.07em;
+  font-weight: 800;
+}
+#shell[data-style="airport"] .card {
+  border-radius: clamp(2px, 0.3vmin, 4px);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.75),
+    0 4px 12px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+#shell[data-style="airport"] .half.up,
+#shell[data-style="airport"] .flap-wrap.up .flap {
+  background: linear-gradient(180deg, #1c1c1c, #131313);
+}
+#shell[data-style="airport"] .half.down,
+#shell[data-style="airport"] .flap-wrap.down .flap {
+  background: linear-gradient(180deg, #0a0a0a, #161616);
+}
+
+/* Mechanical — heavy, deep, industrial */
+#shell[data-style="mechanical"] .card {
+  background: #0a0a0a;
+  border-radius: clamp(4px, 0.6vmin, 10px);
+  box-shadow:
+    0 40px 100px rgba(0,0,0,0.95),
+    0 12px 32px rgba(0,0,0,0.9),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -3px 6px rgba(0,0,0,0.85);
+}
+#shell[data-style="mechanical"] .half.up,
+#shell[data-style="mechanical"] .flap-wrap.up .flap {
+  background: linear-gradient(180deg, #1d1d1d, #0a0a0a);
+}
+#shell[data-style="mechanical"] .half.down,
+#shell[data-style="mechanical"] .flap-wrap.down .flap {
+  background: linear-gradient(180deg, #060606, #161616);
+}
+#shell[data-style="mechanical"] .digit {
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.05),
+    0 3px 6px rgba(0,0,0,0.9),
+    0 12px 24px rgba(0,0,0,0.7);
+}
+#shell[data-style="mechanical"] .divider {
+  box-shadow: 0 0 10px rgba(0,0,0,1);
+  height: 3px;
+}
+
+/* Ultra Minimal — no cards, numbers floating */
+#shell[data-style="ultra"] .card {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+#shell[data-style="ultra"] .half,
+#shell[data-style="ultra"] .flap-wrap .flap {
+  background: transparent !important;
+}
+#shell[data-style="ultra"] .divider { opacity: 0; }
+#shell[data-style="ultra"] .card::before { opacity: 0; }
+#shell[data-style="ultra"] .digit {
+  text-shadow:
+    0 2px 6px rgba(0,0,0,0.9),
+    0 12px 30px rgba(0,0,0,0.6);
+}
+
+/* ── Fullscreen / screensaver mode ── */
 :fullscreen body,
 :-webkit-full-screen body,
 :-moz-full-screen body {
   background: #000 !important;
 }
-:fullscreen .settings-panel,
-:-webkit-full-screen .settings-panel,
-:-moz-full-screen .settings-panel {
-  bottom: 24px; right: 24px;
+body.fs-mode .controls-bar,
+body.fs-mode .mode-label,
+body.fs-mode .action-bar,
+body.fs-mode .settings-panel {
+  display: none !important;
 }
 </style>
 </head>
@@ -467,6 +620,15 @@ body {
       <label>seg</label>
     </div>
   </div>
+  <div class="preset-row" id="presetRow">
+    <button class="preset-btn" data-sec="60">1 min</button>
+    <button class="preset-btn" data-sec="300">5 min</button>
+    <button class="preset-btn" data-sec="600">10 min</button>
+    <button class="preset-btn" data-sec="1500">25 min</button>
+    <button class="preset-btn" data-sec="1800">30 min</button>
+    <button class="preset-btn" data-sec="2700">45 min</button>
+    <button class="preset-btn" data-sec="3600">60 min</button>
+  </div>
   <div class="timer-setup-btns">
     <button class="act-btn" id="setupCancelBtn">Cancelar</button>
     <button class="act-btn primary" id="setupStartBtn">Iniciar</button>
@@ -476,14 +638,60 @@ body {
 <!-- Settings panel -->
 <div class="settings-panel" id="settingsPanel">
   <div class="settings-title">Configuración</div>
+
   <div class="settings-row">
-    <label>Tamaño del reloj <span id="scaleLabel">100%</span></label>
+    <label>Tamaño <span id="scaleLabel">100%</span></label>
     <input type="range" class="scale-slider" id="scaleSlider" min="60" max="200" value="100" step="5">
+  </div>
+
+  <div class="settings-row">
+    <label>Estilo</label>
+    <div class="seg-row" id="styleRow">
+      <button class="seg-btn" data-val="classic">Classic</button>
+      <button class="seg-btn" data-val="airport">Airport</button>
+      <button class="seg-btn" data-val="mechanical">Mech</button>
+      <button class="seg-btn" data-val="ultra">Ultra</button>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <label>Velocidad Flip</label>
+    <div class="seg-row" id="speedRow">
+      <button class="seg-btn" data-val="slow">Lenta</button>
+      <button class="seg-btn" data-val="normal">Normal</button>
+      <button class="seg-btn" data-val="fast">Rápida</button>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <label>Mostrar segundos</label>
+    <div class="seg-row" id="secondsRow">
+      <button class="seg-btn" data-val="on">ON</button>
+      <button class="seg-btn" data-val="off">OFF</button>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <label>Sonidos</label>
+    <div class="seg-row" id="soundsRow">
+      <button class="seg-btn" data-val="on">ON</button>
+      <button class="seg-btn" data-val="off">OFF</button>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <label>Formato</label>
+    <div class="seg-row" id="formatRow">
+      <button class="seg-btn" data-val="12">12h</button>
+      <button class="seg-btn" data-val="24">24h</button>
+    </div>
   </div>
 </div>
 
+<!-- Entry animation wrapper -->
+<div class="entry-wrap">
 <!-- Main clock shell (no background/border) -->
-<div class="clock-shell" id="shell">
+<div class="clock-shell" id="shell" data-style="classic">
 
   <!-- Mode label -->
   <div class="mode-label" id="modeLabel">RELOJ</div>
@@ -495,7 +703,7 @@ body {
       <div class="card" id="card-s0">
         <div class="ampm" id="ampm">AM</div>
         <div class="half up"   id="su-s0"><span class="digit">0</span></div>
-        <div class="half down" id="sd-s0"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s0"><span class="digit">0</span><div class="cast-shade" id="cs-s0"></div></div>
         <div class="flap-wrap up"   id="fw-u-s0"><div class="flap" id="fu-s0"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s0"></div></div></div>
         <div class="flap-wrap down" id="fw-d-s0"><div class="flap" id="fd-s0"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s0"></div></div></div>
         <div class="divider"></div>
@@ -503,7 +711,7 @@ body {
       <!-- Card s1 -->
       <div class="card" id="card-s1">
         <div class="half up"   id="su-s1"><span class="digit">0</span></div>
-        <div class="half down" id="sd-s1"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s1"><span class="digit">0</span><div class="cast-shade" id="cs-s1"></div></div>
         <div class="flap-wrap up"   id="fw-u-s1"><div class="flap" id="fu-s1"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s1"></div></div></div>
         <div class="flap-wrap down" id="fw-d-s1"><div class="flap" id="fd-s1"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s1"></div></div></div>
         <div class="divider"></div>
@@ -516,7 +724,7 @@ body {
       <!-- Card s2 -->
       <div class="card" id="card-s2">
         <div class="half up"   id="su-s2"><span class="digit">0</span></div>
-        <div class="half down" id="sd-s2"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s2"><span class="digit">0</span><div class="cast-shade" id="cs-s2"></div></div>
         <div class="flap-wrap up"   id="fw-u-s2"><div class="flap" id="fu-s2"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s2"></div></div></div>
         <div class="flap-wrap down" id="fw-d-s2"><div class="flap" id="fd-s2"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s2"></div></div></div>
         <div class="divider"></div>
@@ -524,7 +732,7 @@ body {
       <!-- Card s3 -->
       <div class="card" id="card-s3">
         <div class="half up"   id="su-s3"><span class="digit">0</span></div>
-        <div class="half down" id="sd-s3"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s3"><span class="digit">0</span><div class="cast-shade" id="cs-s3"></div></div>
         <div class="flap-wrap up"   id="fw-u-s3"><div class="flap" id="fu-s3"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s3"></div></div></div>
         <div class="flap-wrap down" id="fw-d-s3"><div class="flap" id="fd-s3"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s3"></div></div></div>
         <div class="divider"></div>
@@ -537,7 +745,7 @@ body {
       <!-- Card s4 -->
       <div class="card" id="card-s4">
         <div class="half up"   id="su-s4"><span class="digit">0</span></div>
-        <div class="half down" id="sd-s4"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s4"><span class="digit">0</span><div class="cast-shade" id="cs-s4"></div></div>
         <div class="flap-wrap up"   id="fw-u-s4"><div class="flap" id="fu-s4"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s4"></div></div></div>
         <div class="flap-wrap down" id="fw-d-s4"><div class="flap" id="fd-s4"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s4"></div></div></div>
         <div class="divider"></div>
@@ -545,7 +753,7 @@ body {
       <!-- Card s5 -->
       <div class="card" id="card-s5">
         <div class="half up"   id="su-s5"><span class="digit">0</span></div>
-        <div class="half down" id="sd-s5"><span class="digit">0</span></div>
+        <div class="half down" id="sd-s5"><span class="digit">0</span><div class="cast-shade" id="cs-s5"></div></div>
         <div class="flap-wrap up"   id="fw-u-s5"><div class="flap" id="fu-s5"><span class="digit">0</span><div class="flap-shade" id="fs-fu-s5"></div></div></div>
         <div class="flap-wrap down" id="fw-d-s5"><div class="flap" id="fd-s5"><span class="digit">0</span><div class="flap-shade" id="fs-fd-s5"></div></div></div>
         <div class="divider"></div>
@@ -556,6 +764,7 @@ body {
   <!-- Action bar -->
   <div class="action-bar" id="actionBar">
     <button class="act-btn primary" id="actionMainBtn">Iniciar</button>
+    <button class="act-btn" id="actionSkipBtn">Saltar</button>
     <button class="act-btn" id="actionResetBtn">Reiniciar</button>
   </div>
 
@@ -581,6 +790,12 @@ body {
         <line x1="15" y1="10" x2="12" y2="13"/>
       </svg>
     </button>
+    <button class="ctrl-btn" id="btnPomodoro" title="Pomodoro">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="13" r="8"/>
+        <path d="M9.5 3.5c1-1.2 4-1.2 5 0M12 5.5V3"/>
+      </svg>
+    </button>
     <button class="ctrl-btn" id="btnSettings" title="Configuración">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
@@ -595,17 +810,50 @@ body {
   </div>
 
 </div><!-- .clock-shell -->
+</div><!-- .entry-wrap -->
 
 <script>
 // ─────────────────────────────────────────────
+// SETTINGS (persisted)
+// ─────────────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  scale: 100,
+  style: 'classic',
+  flipSpeed: 'normal',     // slow | normal | fast
+  showSeconds: false,
+  sounds: true,
+  format24: false,
+};
+let settings = { ...DEFAULT_SETTINGS };
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('flipclock_settings');
+    if (raw) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch(e) {}
+}
+function saveSettings() {
+  try { localStorage.setItem('flipclock_settings', JSON.stringify(settings)); } catch(e) {}
+}
+
+// ─────────────────────────────────────────────
 // FLIP ANIMATION CONSTANTS
 // ─────────────────────────────────────────────
-const FLIP_MS_UP   = 220;  // upper half fold duration
-const FLIP_MS_DOWN = 240;  // lower half unfold duration
-const GAP_MS       = 10;   // pause between up and down
-// Physical cubic-bezier: weighted start for the fold (gravity) and weighted end for the reveal
-const EASE_UP   = 'cubic-bezier(0.55, 0.055, 0.675, 0.19)';  // accelerates then stops (gravity pull)
-const EASE_DOWN = 'cubic-bezier(0.215, 0.61, 0.355, 1)';     // decelerates with inertia
+const GAP_MS = 10;
+const EASE_UP   = 'cubic-bezier(0.55, 0.055, 0.675, 0.19)';  // gravity pull
+const EASE_DOWN = 'cubic-bezier(0.215, 0.61, 0.355, 1)';     // inertial settle
+
+const STYLE_SPEED_MULT = { classic: 1, airport: 0.8, mechanical: 1.15, ultra: 1 };
+const FLIP_SPEED_MULT  = { slow: 1.4, normal: 1.0, fast: 0.62 };
+
+function totalSpeedMult() {
+  return FLIP_SPEED_MULT[settings.flipSpeed] * STYLE_SPEED_MULT[settings.style];
+}
+// Random base 210-260ms, scaled by current speed multipliers
+function flipDuration() {
+  const base = 210 + Math.random() * 50;
+  return Math.round(base * totalSpeedMult());
+}
 
 // ─────────────────────────────────────────────
 // SLOT FACTORY
@@ -615,7 +863,8 @@ function makeSlot(id) {
     id,
     staticUp:    document.querySelector(`#su-${id} .digit`),
     staticDown:  document.querySelector(`#sd-${id} .digit`),
-    flapUp:      document.getElementById(`fu-${id}`),       // the rotating element
+    castShade:   document.getElementById(`cs-${id}`),
+    flapUp:      document.getElementById(`fu-${id}`),
     flapDown:    document.getElementById(`fd-${id}`),
     flapUpNum:   document.querySelector(`#fu-${id} .digit`),
     flapDownNum: document.querySelector(`#fd-${id} .digit`),
@@ -633,11 +882,11 @@ const S = ['s0','s1','s2','s3','s4','s5'].map(makeSlot);
 // ─────────────────────────────────────────────
 function setImmediate(slot, val) {
   const v = String(val);
-  // Cancel any in-flight animations
   slot.flapUp.getAnimations().forEach(a => a.cancel());
   slot.flapDown.getAnimations().forEach(a => a.cancel());
   slot.shadeUp.getAnimations().forEach(a => a.cancel());
   slot.shadeDown.getAnimations().forEach(a => a.cancel());
+  slot.castShade.getAnimations().forEach(a => a.cancel());
 
   slot.staticUp.textContent    = v;
   slot.staticDown.textContent  = v;
@@ -647,6 +896,7 @@ function setImmediate(slot, val) {
   slot.flapDown.style.transform  = 'rotateX(0deg)';
   slot.shadeUp.style.background  = 'transparent';
   slot.shadeDown.style.background = 'transparent';
+  slot.castShade.style.background = 'transparent';
   slot.current = v;
   slot.busy    = false;
 }
@@ -661,19 +911,18 @@ function flip(slot, newVal) {
   const oldVal = slot.current ?? '0';
   const nv     = String(newVal);
 
-  // ── Phase setup ──
-  // Static halves: up shows old (already correct), down will show new
+  const durUp   = flipDuration();
+  const durDown = flipDuration();
+
   slot.staticDown.textContent  = nv;
-  // Flaps: upper carries old number (about to fold away)
-  //        lower carries new number (about to unfold in)
   slot.flapUpNum.textContent   = oldVal;
   slot.flapDownNum.textContent = nv;
 
-  // Reset positions
   slot.flapUp.style.transform   = 'rotateX(0deg)';
   slot.flapDown.style.transform = 'rotateX(90deg)';
   slot.shadeUp.style.background   = 'transparent';
   slot.shadeDown.style.background = 'rgba(0,0,0,0.65)';
+  slot.castShade.style.background = 'transparent';
 
   // ── Phase 1: upper flap falls (0° → -90°) ──
   const animUp = slot.flapUp.animate(
@@ -681,23 +930,32 @@ function flip(slot, newVal) {
       { transform: 'rotateX(0deg)',   easing: EASE_UP },
       { transform: 'rotateX(-90deg)' }
     ],
-    { duration: FLIP_MS_UP, fill: 'forwards' }
+    { duration: durUp, fill: 'forwards' }
   );
 
-  // Shadow builds as upper flap falls (gets darker as it approaches horizontal)
+  // Shadow on the upper flap itself (intensifies near 90deg)
   slot.shadeUp.animate(
     [
-      { background: 'rgba(0,0,0,0)',    easing: 'ease-in' },
-      { background: 'rgba(0,0,0,0.80)' }
+      { background: 'rgba(0,0,0,0)',    offset: 0,   easing: 'ease-in' },
+      { background: 'rgba(0,0,0,0.35)', offset: 0.6, easing: 'ease-in' },
+      { background: 'rgba(0,0,0,0.85)', offset: 1 }
     ],
-    { duration: FLIP_MS_UP, fill: 'forwards' }
+    { duration: durUp, fill: 'forwards' }
+  );
+
+  // Dynamic cast shadow projected onto the lower static half,
+  // grows as the upper flap approaches 90deg, then fades during phase 2
+  slot.castShade.animate(
+    [
+      { background: 'rgba(0,0,0,0)',     offset: 0,   easing: 'ease-in' },
+      { background: 'rgba(0,0,0,0.45)',  offset: 0.7, easing: 'ease-in' },
+      { background: 'rgba(0,0,0,0.6)',   offset: 1 }
+    ],
+    { duration: durUp, fill: 'forwards' }
   );
 
   animUp.onfinish = () => {
-    // Upper half now shows the NEW number (flap is hidden at 90°)
     slot.staticUp.textContent = nv;
-    slot.flapUp.style.transform = 'rotateX(-90deg)';
-    // Clear animations so the element stays at -90°
     slot.flapUp.getAnimations().forEach(a => a.cancel());
     slot.flapUp.style.transform = 'rotateX(-90deg)';
     slot.shadeUp.getAnimations().forEach(a => a.cancel());
@@ -710,32 +968,58 @@ function flip(slot, newVal) {
           { transform: 'rotateX(90deg)', easing: EASE_DOWN },
           { transform: 'rotateX(0deg)' }
         ],
-        { duration: FLIP_MS_DOWN, fill: 'forwards' }
+        { duration: durDown, fill: 'forwards' }
       );
 
-      // Shadow lifts as lower flap settles into place
+      // Cast shadow fades out as lower flap settles into place
+      slot.castShade.animate(
+        [
+          { background: 'rgba(0,0,0,0.6)', easing: 'ease-out' },
+          { background: 'rgba(0,0,0,0)' }
+        ],
+        { duration: durDown, fill: 'forwards' }
+      );
+
       slot.shadeDown.animate(
         [
           { background: 'rgba(0,0,0,0.65)', easing: 'ease-out' },
           { background: 'rgba(0,0,0,0)' }
         ],
-        { duration: FLIP_MS_DOWN, fill: 'forwards' }
+        { duration: durDown, fill: 'forwards' }
       );
 
       animDown.onfinish = () => {
-        // Fully settled: sync all elements to new value, reset transforms
         slot.flapUpNum.textContent   = nv;
         slot.flapDownNum.textContent = nv;
         slot.flapUp.getAnimations().forEach(a => a.cancel());
         slot.flapDown.getAnimations().forEach(a => a.cancel());
         slot.shadeUp.getAnimations().forEach(a => a.cancel());
         slot.shadeDown.getAnimations().forEach(a => a.cancel());
+        slot.castShade.getAnimations().forEach(a => a.cancel());
         slot.flapUp.style.transform    = 'rotateX(0deg)';
         slot.flapDown.style.transform  = 'rotateX(0deg)';
         slot.shadeUp.style.background  = 'transparent';
         slot.shadeDown.style.background = 'transparent';
-        slot.current = nv;
-        slot.busy    = false;
+        slot.castShade.style.background = 'transparent';
+
+        // ── Mechanical bounce: 0° → 3° → 0°, max 80ms ──
+        const bounce = slot.flapDown.animate(
+          [
+            { transform: 'rotateX(0deg)' },
+            { transform: 'rotateX(3deg)', offset: 0.5 },
+            { transform: 'rotateX(0deg)' }
+          ],
+          { duration: 80, easing: 'ease-out', fill: 'none' }
+        );
+        bounce.onfinish = () => {
+          slot.flapDown.style.transform = 'rotateX(0deg)';
+          slot.current = nv;
+          slot.busy    = false;
+        };
+        bounce.oncancel = () => {
+          slot.current = nv;
+          slot.busy    = false;
+        };
       };
     }, GAP_MS);
   };
@@ -755,6 +1039,7 @@ const ampmEl         = document.getElementById('ampm');
 const modeLabel      = document.getElementById('modeLabel');
 const actionBar      = document.getElementById('actionBar');
 const actionMainBtn  = document.getElementById('actionMainBtn');
+const actionSkipBtn  = document.getElementById('actionSkipBtn');
 const actionResetBtn = document.getElementById('actionResetBtn');
 const sep1           = document.getElementById('sep1');
 const sep2           = document.getElementById('sep2');
@@ -764,6 +1049,7 @@ const setupCancelBtn = document.getElementById('setupCancelBtn');
 const inputH         = document.getElementById('inputH');
 const inputM         = document.getElementById('inputM');
 const inputS         = document.getElementById('inputS');
+const presetRow      = document.getElementById('presetRow');
 const pair2          = document.getElementById('pair-2');
 const shell          = document.getElementById('shell');
 const settingsPanel  = document.getElementById('settingsPanel');
@@ -771,29 +1057,44 @@ const scaleSlider    = document.getElementById('scaleSlider');
 const scaleLabel     = document.getElementById('scaleLabel');
 
 // ─────────────────────────────────────────────
-// SCALE / SETTINGS
+// SCALE
 // ─────────────────────────────────────────────
 function applyScale(val) {
   const s = val / 100;
   shell.style.setProperty('--clock-scale', s);
-  shell.style.transform = `scale(${s})`;
+  if (!document.body.classList.contains('fs-mode')) {
+    shell.style.transform = `scale(${s})`;
+  }
   scaleLabel.textContent = val + '%';
-}
-
-function loadScale() {
-  let saved = 100;
-  try { saved = parseInt(localStorage.getItem('flipclock_scale')) || 100; } catch(e) {}
-  saved = Math.max(60, Math.min(200, saved));
-  scaleSlider.value = saved;
-  applyScale(saved);
 }
 
 scaleSlider.addEventListener('input', () => {
   const v = parseInt(scaleSlider.value);
+  settings.scale = v;
   applyScale(v);
-  try { localStorage.setItem('flipclock_scale', v); } catch(e) {}
+  saveSettings();
 });
 
+// ─────────────────────────────────────────────
+// SEGMENTED CONTROL BINDER
+// ─────────────────────────────────────────────
+function bindSegRow(rowId, currentVal, onChange) {
+  const row = document.getElementById(rowId);
+  const btns = row.querySelectorAll('.seg-btn');
+  btns.forEach(b => {
+    b.classList.toggle('active', b.dataset.val === String(currentVal));
+    b.addEventListener('click', () => {
+      btns.forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      onChange(b.dataset.val);
+      saveSettings();
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS PANEL TOGGLE
+// ─────────────────────────────────────────────
 document.getElementById('btnSettings').addEventListener('click', (e) => {
   e.stopPropagation();
   settingsPanel.classList.toggle('visible');
@@ -810,6 +1111,7 @@ document.addEventListener('click', (e) => {
 // ─────────────────────────────────────────────
 // MODE STATE
 // ─────────────────────────────────────────────
+// 'clock' | 'timer' | 'stopwatch' | 'pomodoro'
 let mode = 'clock';
 
 // ─────────────────────────────────────────────
@@ -821,31 +1123,44 @@ function clockDigits() {
   const now  = new Date();
   let h      = now.getHours();
   const m    = now.getMinutes();
+  const sec  = now.getSeconds();
   const isPM = h >= 12;
-  h = h % 12 || 12;
-  ampmEl.textContent = isPM ? 'PM' : 'AM';
+
+  if (!settings.format24) {
+    h = h % 12 || 12;
+    ampmEl.textContent = isPM ? 'PM' : 'AM';
+  }
+
   return [
     Math.floor(h / 10), h % 10,
     Math.floor(m / 10), m % 10,
-    0, 0
+    Math.floor(sec / 10), sec % 10,
   ];
 }
 
 function scheduleClock() {
-  const msUntilNext = 60000 - (Date.now() % 60000);
-  clockTimeout = setTimeout(() => {
-    if (mode !== 'clock') return;
-    renderDigits(clockDigits(), true);
-    scheduleClock();
-  }, msUntilNext);
+  clearTimeout(clockTimeout);
+  if (settings.showSeconds) {
+    clockTimeout = setTimeout(() => {
+      if (mode !== 'clock') return;
+      renderDigits(clockDigits(), true);
+      scheduleClock();
+    }, 1000 - (Date.now() % 1000));
+  } else {
+    clockTimeout = setTimeout(() => {
+      if (mode !== 'clock') return;
+      renderDigits(clockDigits(), true);
+      scheduleClock();
+    }, 60000 - (Date.now() % 60000));
+  }
 }
 
 function startClock(animate) {
+  pair2.style.display  = settings.showSeconds ? '' : 'none';
+  sep2.style.display   = settings.showSeconds ? '' : 'none';
+  ampmEl.style.display = settings.format24 ? 'none' : '';
   const d = clockDigits();
-  pair2.style.display  = 'none';
-  sep2.style.display   = 'none';
-  ampmEl.style.display = '';
-  renderDigits([d[0], d[1], d[2], d[3], 0, 0], animate);
+  renderDigits(settings.showSeconds ? d : [d[0],d[1],d[2],d[3],0,0], animate);
   scheduleClock();
 }
 
@@ -879,6 +1194,7 @@ function startStopwatch(fresh) {
   renderDigits(swDigits(), false);
   actionMainBtn.textContent  = 'Iniciar';
   actionResetBtn.textContent = 'Reiniciar';
+  actionSkipBtn.style.display = 'none';
   actionBar.classList.add('visible');
 }
 
@@ -908,22 +1224,30 @@ function swReset() {
 }
 
 // ─────────────────────────────────────────────
-// TIMER MODE
+// SHARED: digits-from-seconds + finish flash + beep
 // ─────────────────────────────────────────────
-let tmTotal    = 0;
-let tmRemain   = 0;
-let tmStart    = null;
-let tmInterval = null;
-let tmRunning  = false;
-let tmFinished = false;
+function secsToDigits(secs) {
+  const hh = Math.floor(secs / 3600);
+  const mm = Math.floor((secs % 3600) / 60);
+  const ss = secs % 60;
+  return [Math.floor(hh/10), hh%10, Math.floor(mm/10), mm%10, Math.floor(ss/10), ss%10];
+}
 
-// Web Audio beep — no external files
+function flashCards() {
+  document.querySelectorAll('.card').forEach(c => {
+    c.classList.remove('flash');
+    void c.offsetWidth;
+    c.classList.add('flash');
+  });
+  setTimeout(() => document.querySelectorAll('.card').forEach(c => c.classList.remove('flash')), 1800);
+}
+
 let audioCtx = null;
 function beep() {
+  if (!settings.sounds) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const t = audioCtx.currentTime;
-    // Three short tones for a premium chime feel
     [0, 0.22, 0.44].forEach((offset, i) => {
       const osc  = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -940,28 +1264,22 @@ function beep() {
   } catch(e) {}
 }
 
-function tmDigits(secs) {
-  const hh = Math.floor(secs / 3600);
-  const mm = Math.floor((secs % 3600) / 60);
-  const ss = secs % 60;
-  return [Math.floor(hh/10), hh%10, Math.floor(mm/10), mm%10, Math.floor(ss/10), ss%10];
-}
-
-function tmFlash() {
-  document.querySelectorAll('.card').forEach(c => {
-    c.classList.remove('flash');
-    void c.offsetWidth;
-    c.classList.add('flash');
-  });
-  setTimeout(() => document.querySelectorAll('.card').forEach(c => c.classList.remove('flash')), 1800);
-}
+// ─────────────────────────────────────────────
+// TIMER MODE
+// ─────────────────────────────────────────────
+let tmTotal    = 0;
+let tmRemain   = 0;
+let tmStart    = null;
+let tmInterval = null;
+let tmRunning  = false;
+let tmFinished = false;
 
 function tmFinish() {
   clearInterval(tmInterval);
   tmRunning = false; tmFinished = true;
   sep1.classList.remove('blinking');
   renderDigits([0,0,0,0,0,0], true);
-  tmFlash();
+  flashCards();
   beep();
   actionMainBtn.textContent  = 'Reiniciar';
   actionResetBtn.textContent = 'Reiniciar';
@@ -971,7 +1289,7 @@ function tmTick() {
   if (tmStart === null) return;
   const elapsed = Math.floor((Date.now() - tmStart) / 1000);
   const rem = Math.max(0, tmRemain - elapsed);
-  renderDigits(tmDigits(rem), true);
+  renderDigits(secsToDigits(rem), true);
   if (rem === 0) tmFinish();
 }
 
@@ -983,9 +1301,10 @@ function startTimer(h, m, s) {
   sep2.style.display   = '';
   ampmEl.style.display = 'none';
   sep1.classList.remove('blinking');
-  renderDigits(tmDigits(tmRemain), false);
+  renderDigits(secsToDigits(tmRemain), false);
   actionMainBtn.textContent  = 'Iniciar';
   actionResetBtn.textContent = 'Reiniciar';
+  actionSkipBtn.style.display = 'none';
   actionBar.classList.add('visible');
 }
 
@@ -1016,8 +1335,109 @@ function tmReset() {
   tmStart = null; tmRunning = false; tmFinished = false;
   tmRemain = tmTotal;
   sep1.classList.remove('blinking');
-  renderDigits(tmDigits(tmRemain), true);
+  renderDigits(secsToDigits(tmRemain), true);
   actionMainBtn.textContent  = 'Iniciar';
+}
+
+// ─────────────────────────────────────────────
+// POMODORO MODE
+// ─────────────────────────────────────────────
+const POMO_DURATIONS = { focus: 25*60, short: 5*60, long: 15*60 };
+const POMO_LABELS    = { focus: 'FOCUS', short: 'BREAK', long: 'LONG BREAK' };
+
+let pmPhase    = 'focus';
+let pmCount    = 0;     // completed focus sessions
+let pmRemain   = POMO_DURATIONS.focus;
+let pmStart    = null;
+let pmInterval = null;
+let pmRunning  = false;
+
+function pmSetPhaseDisplay() {
+  modeLabel.textContent = POMO_LABELS[pmPhase];
+  renderDigits(secsToDigits(pmRemain), false);
+}
+
+function startPomodoro() {
+  pmPhase  = 'focus';
+  pmCount  = 0;
+  pmRemain = POMO_DURATIONS.focus;
+  pmStart  = null; pmRunning = false;
+  pair2.style.display  = '';
+  sep2.style.display   = '';
+  ampmEl.style.display = 'none';
+  sep1.classList.remove('blinking');
+  pmSetPhaseDisplay();
+  actionMainBtn.textContent  = 'Iniciar';
+  actionResetBtn.textContent = 'Reiniciar';
+  actionSkipBtn.style.display = '';
+  actionSkipBtn.textContent = 'Saltar';
+  actionBar.classList.add('visible');
+}
+
+function pmAdvancePhase() {
+  if (pmPhase === 'focus') {
+    pmCount++;
+    pmPhase = (pmCount % 4 === 0) ? 'long' : 'short';
+  } else {
+    pmPhase = 'focus';
+  }
+  pmRemain = POMO_DURATIONS[pmPhase];
+  pmStart = null; pmRunning = false;
+  clearInterval(pmInterval);
+  sep1.classList.remove('blinking');
+  pmSetPhaseDisplay();
+  actionMainBtn.textContent = 'Iniciar';
+}
+
+function pmFinish() {
+  clearInterval(pmInterval);
+  pmRunning = false;
+  sep1.classList.remove('blinking');
+  renderDigits([0,0,0,0,0,0], true);
+  flashCards();
+  beep();
+  setTimeout(() => pmAdvancePhase(), 600);
+}
+
+function pmTick() {
+  if (pmStart === null) return;
+  const elapsed = Math.floor((Date.now() - pmStart) / 1000);
+  const total = POMO_DURATIONS[pmPhase];
+  const rem = Math.max(0, total - elapsed);
+  pmRemain = rem;
+  renderDigits(secsToDigits(rem), true);
+  if (rem === 0) pmFinish();
+}
+
+function pmRun() {
+  if (pmRemain === 0) return;
+  const alreadyElapsed = POMO_DURATIONS[pmPhase] - pmRemain;
+  pmStart = Date.now() - alreadyElapsed * 1000;
+  pmRunning = true;
+  clearInterval(pmInterval);
+  pmInterval = setInterval(pmTick, 250);
+  sep1.classList.add('blinking');
+  actionMainBtn.textContent = 'Pausar';
+}
+
+function pmPause() {
+  if (!pmRunning) return;
+  const elapsed = Math.floor((Date.now() - pmStart) / 1000);
+  pmRemain = Math.max(0, POMO_DURATIONS[pmPhase] - elapsed);
+  pmStart = null;
+  clearInterval(pmInterval);
+  pmRunning = false;
+  sep1.classList.remove('blinking');
+  actionMainBtn.textContent = 'Reanudar';
+}
+
+function pmReset() {
+  clearInterval(pmInterval);
+  pmStart = null; pmRunning = false;
+  pmRemain = POMO_DURATIONS[pmPhase];
+  sep1.classList.remove('blinking');
+  renderDigits(secsToDigits(pmRemain), true);
+  actionMainBtn.textContent = 'Iniciar';
 }
 
 // ─────────────────────────────────────────────
@@ -1027,8 +1447,9 @@ function stopAll() {
   clearTimeout(clockTimeout); clockTimeout = null;
   clearInterval(swInterval);  swInterval   = null;
   clearInterval(tmInterval);  tmInterval   = null;
+  clearInterval(pmInterval);  pmInterval   = null;
   sep1.classList.remove('blinking');
-  swRunning = false; tmRunning = false;
+  swRunning = false; tmRunning = false; pmRunning = false;
 }
 
 function setMode(m) {
@@ -1048,12 +1469,15 @@ function setMode(m) {
     pair2.style.display  = '';
     sep2.style.display   = '';
     ampmEl.style.display = 'none';
-    renderDigits(tmDigits(tmRemain || 0), false);
+    renderDigits(secsToDigits(tmRemain || 0), false);
     timerSetup.classList.add('visible');
   } else if (m === 'stopwatch') {
     document.getElementById('btnStopwatch').classList.add('active');
     modeLabel.textContent = 'CRONÓMETRO';
     startStopwatch(true);
+  } else if (m === 'pomodoro') {
+    document.getElementById('btnPomodoro').classList.add('active');
+    startPomodoro();
   }
 }
 
@@ -1066,12 +1490,19 @@ actionMainBtn.addEventListener('click', () => {
   } else if (mode === 'timer') {
     if (tmFinished) { tmReset(); return; }
     if (!tmRunning) tmRun(); else tmPause();
+  } else if (mode === 'pomodoro') {
+    if (!pmRunning) pmRun(); else pmPause();
   }
+});
+
+actionSkipBtn.addEventListener('click', () => {
+  if (mode === 'pomodoro') pmAdvancePhase();
 });
 
 actionResetBtn.addEventListener('click', () => {
   if (mode === 'stopwatch') swReset();
   else if (mode === 'timer') tmReset();
+  else if (mode === 'pomodoro') pmReset();
 });
 
 // ─────────────────────────────────────────────
@@ -1097,9 +1528,21 @@ setupCancelBtn.addEventListener('click', () => {
     let v = parseInt(inp.value);
     if (isNaN(v) || v < 0) inp.value = 0;
     if (v > max) inp.value = max;
+    presetRow.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
   });
-  // Select all on focus for quick entry
   inp.addEventListener('focus', () => inp.select());
+});
+
+// ── Quick presets ──
+presetRow.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    presetRow.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sec = parseInt(btn.dataset.sec);
+    inputH.value = Math.floor(sec / 3600);
+    inputM.value = Math.floor((sec % 3600) / 60);
+    inputS.value = sec % 60;
+  });
 });
 
 // ─────────────────────────────────────────────
@@ -1108,13 +1551,14 @@ setupCancelBtn.addEventListener('click', () => {
 document.getElementById('btnClock').addEventListener('click', () => setMode('clock'));
 document.getElementById('btnTimer').addEventListener('click', () => setMode('timer'));
 document.getElementById('btnStopwatch').addEventListener('click', () => setMode('stopwatch'));
+document.getElementById('btnPomodoro').addEventListener('click', () => setMode('pomodoro'));
 
 // ─────────────────────────────────────────────
-// FULLSCREEN
+// FULLSCREEN / SCREENSAVER MODE
 // ─────────────────────────────────────────────
-const fsIcon       = document.getElementById('fsIcon');
-const FS_EXPAND    = `<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>`;
-const FS_SHRINK    = `<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 0 2 2v3M16 21v-3a2 2 0 0 0 2-2h3"/>`;
+const fsIcon    = document.getElementById('fsIcon');
+const FS_EXPAND = `<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>`;
+const FS_SHRINK = `<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 0 2 2v3M16 21v-3a2 2 0 0 0 2-2h3"/>`;
 
 document.getElementById('btnFullscreen').addEventListener('click', () => {
   const fs = document.fullscreenElement || document.webkitFullscreenElement;
@@ -1125,19 +1569,83 @@ document.getElementById('btnFullscreen').addEventListener('click', () => {
   }
 });
 
+function fitFullscreenScale() {
+  const prevTransform = shell.style.transform;
+  shell.style.transform = 'none';
+  // Force reflow before measuring
+  void shell.offsetWidth;
+  const rect = shell.getBoundingClientRect();
+  const scaleX = (window.innerWidth  * 0.9) / rect.width;
+  const scaleY = (window.innerHeight * 0.9) / rect.height;
+  const fsScale = Math.min(scaleX, scaleY);
+  shell.style.transform = `scale(${fsScale})`;
+}
+
 function updateFsIcon() {
   const fs = document.fullscreenElement || document.webkitFullscreenElement;
   fsIcon.innerHTML = fs ? FS_SHRINK : FS_EXPAND;
-  document.body.style.background = fs ? '#000' : '';
+  if (fs) {
+    document.body.classList.add('fs-mode');
+    document.body.style.background = '#000';
+    requestAnimationFrame(fitFullscreenScale);
+  } else {
+    document.body.classList.remove('fs-mode');
+    document.body.style.background = '';
+    applyScale(settings.scale);
+  }
 }
 document.addEventListener('fullscreenchange', updateFsIcon);
 document.addEventListener('webkitfullscreenchange', updateFsIcon);
+window.addEventListener('resize', () => {
+  if (document.body.classList.contains('fs-mode')) fitFullscreenScale();
+});
+
+// ─────────────────────────────────────────────
+// AUTO-HIDE CONTROLS (idle state)
+// ─────────────────────────────────────────────
+let idleTimer = null;
+function resetIdle() {
+  document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (!settingsPanel.classList.contains('visible') && !timerSetup.classList.contains('visible')) {
+      document.body.classList.add('idle');
+    }
+  }, 3000);
+}
+['mousemove', 'touchstart', 'click', 'keydown'].forEach(ev =>
+  document.addEventListener(ev, resetIdle, { passive: true })
+);
 
 // ─────────────────────────────────────────────
 // BOOT
 // ─────────────────────────────────────────────
-loadScale();
+loadSettings();
+applyScale(settings.scale);
+scaleSlider.value = settings.scale;
+shell.dataset.style = settings.style;
+
+bindSegRow('styleRow', settings.style, (v) => {
+  settings.style = v;
+  shell.dataset.style = v;
+});
+bindSegRow('speedRow', settings.flipSpeed, (v) => {
+  settings.flipSpeed = v;
+});
+bindSegRow('secondsRow', settings.showSeconds ? 'on' : 'off', (v) => {
+  settings.showSeconds = (v === 'on');
+  if (mode === 'clock') startClock(false);
+});
+bindSegRow('soundsRow', settings.sounds ? 'on' : 'off', (v) => {
+  settings.sounds = (v === 'on');
+});
+bindSegRow('formatRow', settings.format24 ? '24' : '12', (v) => {
+  settings.format24 = (v === '24');
+  if (mode === 'clock') startClock(false);
+});
+
 setMode('clock');
+resetIdle();
 </script>
 </body>
 </html>
